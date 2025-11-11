@@ -23,11 +23,10 @@ docker compose -f docker-compose.standalone.yml down 2>/dev/null || true
 docker stop imovelpro-frontend imovelpro-backend 2>/dev/null || true
 docker rm imovelpro-frontend imovelpro-backend 2>/dev/null || true
 
-# Criar network independente
-echo -e "${BLUE}2) Criando network independente...${NC}"
+# Remover network antiga (se existir)
+echo -e "${BLUE}2) Limpando network antiga...${NC}"
 docker network rm imovelpro-network 2>/dev/null || true
-docker network create --driver bridge --attachable imovelpro-network 2>/dev/null || true
-echo -e "${GREEN}✅ Network criada${NC}"
+echo -e "${GREEN}✅ Network antiga removida${NC}"
 
 # Verificar .env do backend
 if [ ! -f "./server/.env" ]; then

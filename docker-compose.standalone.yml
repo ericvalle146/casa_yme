@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   frontend:
     build:
@@ -75,5 +73,5 @@ services:
 networks:
   imovelpro-network:
     driver: bridge
-    name: imovelpro-network
+    attachable: true
 
