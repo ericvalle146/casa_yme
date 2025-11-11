@@ -6,9 +6,9 @@ services:
       args:
         VITE_API_BASE_URL: https://apiapi.jyze.space
     container_name: imovelpro-frontend
-    # Porta 8080 exposta localmente, Traefik faz proxy reverso na porta 80
+    # Porta 3429 exposta localmente, Traefik faz proxy reverso na porta 80
     ports:
-      - "8080:80"
+      - "3429:80"
     restart: unless-stopped
     networks:
       - imovelpro-network

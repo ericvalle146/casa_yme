@@ -258,10 +258,10 @@ sleep 5
 
 # Testar endpoints
 echo -e "${GREEN}🧪 Testando endpoints...${NC}"
-if curl -s http://localhost:8080/health >/dev/null 2>&1; then
-    echo -e "${GREEN}✅ Frontend respondendo na porta 8080${NC}"
+if curl -s http://localhost:3429/health >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ Frontend respondendo na porta 3429${NC}"
 else
-    echo -e "${YELLOW}⚠️  Frontend não está respondendo na porta 8080${NC}"
+    echo -e "${YELLOW}⚠️  Frontend não está respondendo na porta 3429${NC}"
 fi
 
 if curl -s http://localhost:4000/health >/dev/null 2>&1; then
@@ -275,7 +275,7 @@ echo -e "${GREEN}✅ Deploy concluído!${NC}"
 echo ""
 echo -e "${YELLOW}📝 Status Final:${NC}"
 echo -e "   - Containers: $($DOCKER_COMPOSE_CMD ps -q 2>/dev/null | wc -l) rodando"
-echo -e "   - Frontend: http://localhost:8080/health"
+echo -e "   - Frontend: http://localhost:3429/health"
 echo -e "   - Backend: http://localhost:4000/health"
 echo -e "   - Nginx: $(sudo systemctl is-active nginx 2>/dev/null || echo 'inativo')"
 echo ""
