@@ -30,13 +30,13 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
       return;
     }
 
-    const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
-    const endpoint = baseUrl ? `${baseUrl.replace(/\/$/, "")}/api/contact` : "/api/contact";
+    // Webhook do N8N
+    const webhookUrl = "https://webhook.locusp.shop/webhook/mariana_imobiliaria";
 
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(endpoint, {
+      const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -46,12 +46,12 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
           email: formData.email.trim(),
           phone: formData.phone.trim(),
           message: formData.message.trim(),
+          submittedAt: new Date().toISOString(),
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error ?? "Falha ao enviar mensagem.");
+        throw new Error("Falha ao enviar mensagem. Tente novamente.");
       }
 
       toast({
@@ -63,7 +63,7 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
       const err = error as Error;
       toast({
         title: "Não foi possível enviar",
-        description: err.message,
+        description: err.message || "Erro ao enviar mensagem. Verifique sua conexão.",
         variant: "destructive",
       });
     } finally {

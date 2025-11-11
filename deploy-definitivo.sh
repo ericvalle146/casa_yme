@@ -13,11 +13,10 @@ NC="\033[0m"
 # Configurações
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 DOMAIN_FRONTEND="imob.locusup.shop"
-DOMAIN_BACKEND="apiapi.jyze.space"
 STACK_NAME="imovelpro"
 
 echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║          DEPLOY DEFINITIVO - ImóvelPro (ZERO ERROS)      ║${NC}"
+echo -e "${CYAN}║     DEPLOY DEFINITIVO - ImóvelPro (APENAS FRONTEND)     ║${NC}"
 echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -88,33 +87,21 @@ fi
 echo -e "${GREEN}✅ Certresolver detectado: ${YELLOW}$CERT_RESOLVER${NC}"
 echo ""
 
-# Verificar .env do backend
-echo -e "${BLUE}[3] Verificando configuração do backend...${NC}"
-if [ ! -f "$PROJECT_ROOT/server/.env" ]; then
-    echo -e "${YELLOW}⚠️  Arquivo server/.env não encontrado${NC}"
-    if [ -f "$PROJECT_ROOT/server/env.example" ]; then
-        cp "$PROJECT_ROOT/server/env.example" "$PROJECT_ROOT/server/.env"
-        echo -e "${YELLOW}   Arquivo criado. Configure o N8N_WEBHOOK_URL!${NC}"
-    fi
-fi
-echo ""
-
 # Atualizar docker-stack.yml com certresolver correto
-echo -e "${BLUE}[4] Atualizando configuração com certresolver correto...${NC}"
+echo -e "${BLUE}[3] Atualizando configuração com certresolver correto...${NC}"
 sed -i "s/certresolver=letsencrypt/certresolver=$CERT_RESOLVER/g" "$PROJECT_ROOT/deploy/docker-stack.yml"
 sed -i "s/certresolver=letsencryptresolver/certresolver=$CERT_RESOLVER/g" "$PROJECT_ROOT/deploy/docker-stack.yml"
 echo -e "${GREEN}✅ Configuração atualizada${NC}"
 echo ""
 
-# Build das imagens
-echo -e "${BLUE}[5] Construindo imagens Docker...${NC}"
+# Build da imagem do frontend
+echo -e "${BLUE}[4] Construindo imagem do frontend...${NC}"
 
 TIMESTAMP_TAG=$(date +%Y%m%d-%H%M%S)
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "nogit")
 IMAGE_TAG="${TIMESTAMP_TAG}-${GIT_SHA}"
 
 FRONTEND_IMAGE="imovelpro-frontend:${IMAGE_TAG}"
-BACKEND_IMAGE="imovelpro-backend:${IMAGE_TAG}"
 
 echo -e "${BLUE}   Building frontend...${NC}"
 docker build \
@@ -122,50 +109,26 @@ docker build \
     -t "$FRONTEND_IMAGE" \
     -t "imovelpro-frontend:latest" \
     -f "$PROJECT_ROOT/Dockerfile.frontend" \
-    --build-arg VITE_API_BASE_URL="https://${DOMAIN_BACKEND}" \
     "$PROJECT_ROOT" || {
     echo -e "${RED}❌ Erro ao construir frontend${NC}"
     exit 1
 }
 
-echo -e "${BLUE}   Building backend...${NC}"
-docker build \
-    --pull \
-    -t "$BACKEND_IMAGE" \
-    -t "imovelpro-backend:latest" \
-    -f "$PROJECT_ROOT/server/Dockerfile" \
-    "$PROJECT_ROOT/server" || {
-    echo -e "${RED}❌ Erro ao construir backend${NC}"
-    exit 1
-}
-
-echo -e "${GREEN}✅ Imagens construídas${NC}"
+echo -e "${GREEN}✅ Imagem construída${NC}"
 echo ""
 
 # Parar stack antiga
-echo -e "${BLUE}[6] Parando stack antiga...${NC}"
+echo -e "${BLUE}[5] Parando stack antiga...${NC}"
 docker stack rm "$STACK_NAME" 2>/dev/null || true
 sleep 5
 echo -e "${GREEN}✅ Stack antiga removida${NC}"
 echo ""
 
-# Carregar variáveis do .env
-if [ -f "$PROJECT_ROOT/server/.env" ]; then
-    set -a
-    source "$PROJECT_ROOT/server/.env" 2>/dev/null || true
-    set +a
-fi
-
 # Deploy da stack
-echo -e "${BLUE}[7] Fazendo deploy da stack...${NC}"
+echo -e "${BLUE}[6] Fazendo deploy da stack...${NC}"
 
 export TRAEFIK_NETWORK
 export FRONTEND_IMAGE="imovelpro-frontend:latest"
-export BACKEND_IMAGE="imovelpro-backend:latest"
-export PORT=${PORT:-4000}
-export CORS_ORIGINS=${CORS_ORIGINS:-"https://${DOMAIN_FRONTEND}"}
-export NODE_ENV=${NODE_ENV:-production}
-export N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-}
 
 docker stack deploy -c "$PROJECT_ROOT/deploy/docker-stack.yml" "$STACK_NAME" || {
     echo -e "${RED}❌ Erro ao fazer deploy${NC}"
@@ -176,31 +139,24 @@ echo -e "${GREEN}✅ Stack deploy iniciado${NC}"
 echo ""
 
 # Aguardar serviços
-echo -e "${BLUE}[8] Aguardando serviços iniciarem...${NC}"
+echo -e "${BLUE}[7] Aguardando serviço iniciar...${NC}"
 sleep 15
 
 # Verificar serviços
-echo -e "${BLUE}[9] Verificando serviços...${NC}"
+echo -e "${BLUE}[8] Verificando serviço...${NC}"
 docker service ls | grep "$STACK_NAME" || true
 echo ""
 
 # Verificar saúde
-echo -e "${BLUE}[10] Verificando saúde dos serviços...${NC}"
+echo -e "${BLUE}[9] Verificando saúde do serviço...${NC}"
 sleep 10
 
 FRONTEND_STATUS=$(docker service ps "${STACK_NAME}_frontend" --format '{{.CurrentState}}' --no-trunc 2>/dev/null | head -1 || echo "")
-BACKEND_STATUS=$(docker service ps "${STACK_NAME}_backend" --format '{{.CurrentState}}' --no-trunc 2>/dev/null | head -1 || echo "")
 
 if echo "$FRONTEND_STATUS" | grep -q "Running"; then
     echo -e "${GREEN}✅ Frontend está rodando${NC}"
 else
     echo -e "${YELLOW}⚠️  Frontend: $FRONTEND_STATUS${NC}"
-fi
-
-if echo "$BACKEND_STATUS" | grep -q "Running"; then
-    echo -e "${GREEN}✅ Backend está rodando${NC}"
-else
-    echo -e "${YELLOW}⚠️  Backend: $BACKEND_STATUS${NC}"
 fi
 echo ""
 
@@ -213,16 +169,14 @@ echo -e "${GREEN}✅ Deploy realizado com sucesso!${NC}"
 echo ""
 echo -e "${BLUE}📋 Informações:${NC}"
 echo -e "   - Frontend: ${CYAN}https://${DOMAIN_FRONTEND}${NC}"
-echo -e "   - Backend:  ${CYAN}https://${DOMAIN_BACKEND}${NC}"
+echo -e "   - Webhook: ${CYAN}https://webhook.locusp.shop/webhook/mariana_imobiliaria${NC}"
 echo -e "   - Network:  ${YELLOW}${TRAEFIK_NETWORK}${NC}"
 echo -e "   - Certresolver: ${YELLOW}${CERT_RESOLVER}${NC}"
 echo ""
 echo -e "${BLUE}💡 Comandos úteis:${NC}"
 echo -e "   - Ver serviços: ${YELLOW}docker service ls | grep $STACK_NAME${NC}"
-echo -e "   - Ver logs frontend: ${YELLOW}docker service logs -f ${STACK_NAME}_frontend${NC}"
-echo -e "   - Ver logs backend: ${YELLOW}docker service logs -f ${STACK_NAME}_backend${NC}"
+echo -e "   - Ver logs: ${YELLOW}docker service logs -f ${STACK_NAME}_frontend${NC}"
 echo ""
 echo -e "${YELLOW}⏱️  Aguarde 2-5 minutos para o Let's Encrypt gerar os certificados SSL${NC}"
-echo -e "${YELLOW}   Verifique com: ${CYAN}echo | openssl s_client -connect ${DOMAIN_BACKEND}:443 -servername ${DOMAIN_BACKEND} 2>&1 | grep CN${NC}"
+echo -e "${YELLOW}   Verifique com: ${CYAN}echo | openssl s_client -connect ${DOMAIN_FRONTEND}:443 -servername ${DOMAIN_FRONTEND} 2>&1 | grep CN${NC}"
 echo ""
-
