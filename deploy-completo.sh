@@ -106,20 +106,55 @@ if [ -z "$TRAEFIK_CONTAINER" ]; then
     if [[ ! $REPLY =~ ^[Ss]$ ]]; then
         exit 1
     fi
+    CERT_RESOLVER="letsencryptresolver"
 else
     echo -e "${GREEN}✅ Traefik encontrado: ${YELLOW}$TRAEFIK_CONTAINER${NC}"
+    
+    # Detectar o nome do certresolver do Traefik
+    echo -e "${BLUE}   Detectando nome do certresolver...${NC}"
+    
+    # Tentar detectar via service inspect (Swarm)
+    if [ "$SWARM_MODE" = true ]; then
+        TRAEFIK_SERVICE=$(echo "$TRAEFIK_CONTAINER" | cut -d'.' -f1-2)
+        TRAEFIK_ARGS=$(docker service inspect "$TRAEFIK_SERVICE" --format '{{range .Spec.TaskTemplate.ContainerSpec.Args}}{{.}}{{"\n"}}{{end}}' 2>/dev/null || echo "")
+    else
+        TRAEFIK_ARGS=$(docker inspect "$TRAEFIK_CONTAINER" --format '{{range .Args}}{{.}}{{"\n"}}{{end}}' 2>/dev/null || echo "")
+    fi
+    
+    # Procurar por certificatesresolvers no args
+    CERT_RESOLVER=$(echo "$TRAEFIK_ARGS" | grep -oP 'certificatesresolvers\.\K[^.]+' | head -1 || echo "")
+    
+    if [ -z "$CERT_RESOLVER" ]; then
+        # Tentar via logs
+        TRAEFIK_LOGS=$(docker logs "$TRAEFIK_CONTAINER" 2>&1 | tail -100)
+        CERT_RESOLVER=$(echo "$TRAEFIK_LOGS" | grep -oP 'certificatesresolvers\.\K[^.]+' | head -1 || echo "")
+    fi
+    
+    if [ -z "$CERT_RESOLVER" ]; then
+        echo -e "${YELLOW}⚠️  Não foi possível detectar o nome do certresolver${NC}"
+        echo -e "${YELLOW}   Usando padrão: letsencryptresolver${NC}"
+        CERT_RESOLVER="letsencryptresolver"
+    else
+        echo -e "${GREEN}✅ Certresolver detectado: ${YELLOW}$CERT_RESOLVER${NC}"
+    fi
     
     # Verificar se o Traefik tem ACME configurado
     TRAEFIK_LOGS=$(docker logs "$TRAEFIK_CONTAINER" 2>&1 | tail -50)
     
-    if echo "$TRAEFIK_LOGS" | grep -qi "acme\|letsencrypt"; then
-        echo -e "${GREEN}✅ Traefik parece ter ACME configurado${NC}"
+    if echo "$TRAEFIK_LOGS" | grep -qi "acme\|letsencrypt\|certificatesresolvers"; then
+        echo -e "${GREEN}✅ Traefik tem ACME configurado${NC}"
     else
         echo -e "${YELLOW}⚠️  Traefik pode não ter Let's Encrypt configurado${NC}"
         echo -e "${YELLOW}   Certifique-se de que o Traefik tem ACME habilitado${NC}"
         echo -e "${YELLOW}   O certificado SSL pode não ser gerado automaticamente${NC}"
     fi
 fi
+
+# Atualizar os arquivos de configuração com o certresolver correto
+echo -e "${BLUE}   Atualizando configurações com certresolver: ${YELLOW}$CERT_RESOLVER${NC}"
+sed -i "s/certresolver=letsencrypt/certresolver=$CERT_RESOLVER/g" "$PROJECT_ROOT/deploy/docker-stack.yml" 2>/dev/null || true
+sed -i "s/certresolver=letsencrypt/certresolver=$CERT_RESOLVER/g" "$PROJECT_ROOT/docker-compose.yml" 2>/dev/null || true
+echo -e "${GREEN}✅ Configurações atualizadas${NC}"
 echo ""
 
 # Verificar arquivo .env do backend
