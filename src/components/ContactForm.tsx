@@ -49,10 +49,13 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
           message: formData.message.trim(),
           submittedAt: new Date().toISOString(),
         }),
+        // Adicionar timeout e melhor tratamento de erro
+        signal: AbortSignal.timeout(30000), // 30 segundos
       });
 
       if (!response.ok) {
-        throw new Error("Falha ao enviar mensagem. Tente novamente.");
+        const errorText = await response.text().catch(() => "Erro desconhecido");
+        throw new Error(`Falha ao enviar mensagem (${response.status}): ${errorText}`);
       }
 
       toast({
@@ -62,9 +65,21 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
       setFormData({ name: "", email: "", phone: "", message: defaultMessage });
     } catch (error) {
       const err = error as Error;
+      let errorMessage = "Erro ao enviar mensagem. Verifique sua conexão.";
+      
+      // Tratamento específico para erros de DNS
+      if (err.message.includes("ERR_NAME_NOT_RESOLVED") || err.message.includes("Failed to fetch")) {
+        errorMessage = "Não foi possível conectar ao servidor. Verifique se o domínio webhook.locusp.shop está configurado corretamente.";
+      } else if (err.message.includes("timeout") || err.name === "TimeoutError") {
+        errorMessage = "Tempo de espera esgotado. Tente novamente.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      console.error("Erro ao enviar formulário:", err);
       toast({
         title: "Não foi possível enviar",
-        description: err.message || "Erro ao enviar mensagem. Verifique sua conexão.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
