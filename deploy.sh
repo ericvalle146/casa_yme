@@ -222,10 +222,47 @@ else
     exit 1
 fi
 
+# Verificar o que está usando a porta 80
+echo -e "${YELLOW}🔍 Verificando o que está usando a porta 80...${NC}"
+PORT_80_PID=$(sudo lsof -ti:80 2>/dev/null || sudo fuser 80/tcp 2>/dev/null | awk '{print $1}' || echo "")
+if [ ! -z "$PORT_80_PID" ]; then
+    echo -e "${YELLOW}⚠️  Porta 80 está em uso pelo processo: ${PORT_80_PID}${NC}"
+    PORT_80_NAME=$(ps -p $PORT_80_PID -o comm= 2>/dev/null || echo "desconhecido")
+    echo -e "${YELLOW}   Processo: ${PORT_80_NAME}${NC}"
+    
+    # Se for Nginx, parar
+    if echo "$PORT_80_NAME" | grep -q "nginx"; then
+        echo -e "${YELLOW}🛑 Parando Nginx...${NC}"
+        sudo systemctl stop nginx 2>/dev/null || true
+        sudo pkill -9 nginx 2>/dev/null || true
+    # Se for Docker, verificar qual container
+    elif echo "$PORT_80_NAME" | grep -q "docker"; then
+        echo -e "${YELLOW}⚠️  Docker está usando a porta 80${NC}"
+        echo -e "${YELLOW}   Verificando containers...${NC}"
+        $DOCKER_COMPOSE_CMD ps | grep ":80->" || true
+    else
+        echo -e "${YELLOW}⚠️  Outro processo está usando a porta 80${NC}"
+        echo -e "${YELLOW}   Parando processo...${NC}"
+        sudo kill -9 $PORT_80_PID 2>/dev/null || true
+    fi
+    sleep 3
+else
+    echo -e "${GREEN}✅ Porta 80 está livre${NC}"
+fi
+
 # Parar Nginx se estiver rodando (para evitar conflitos)
 echo -e "${YELLOW}🛑 Parando Nginx se estiver rodando...${NC}"
 sudo systemctl stop nginx 2>/dev/null || true
+sudo pkill -9 nginx 2>/dev/null || true
 sleep 2
+
+# Verificar novamente se a porta 80 está livre
+PORT_80_CHECK=$(sudo lsof -ti:80 2>/dev/null || echo "")
+if [ ! -z "$PORT_80_CHECK" ]; then
+    echo -e "${RED}❌ Porta 80 ainda está em uso. Liberando forçadamente...${NC}"
+    sudo fuser -k 80/tcp 2>/dev/null || true
+    sleep 2
+fi
 
 # Iniciar Nginx
 echo -e "${GREEN}🔄 Iniciando Nginx...${NC}"
