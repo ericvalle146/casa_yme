@@ -226,19 +226,48 @@ if [ "$USE_MANUAL_CONNECTION" = "true" ] && [ "$VPSNET_EXISTS" = "true" ]; then
         # Conectar containers manualmente à network vpsnet
         echo -e "${BLUE}   Conectando containers à network vpsnet manualmente...${NC}"
         
+        FRONTEND_CONNECTED=false
+        BACKEND_CONNECTED=false
+        
         if docker ps --format "{{.Names}}" | grep -q "imovelpro-frontend"; then
-            if docker network connect vpsnet imovelpro-frontend 2>/dev/null; then
+            # Tentar conectar e capturar erro
+            CONNECT_OUTPUT=$(docker network connect vpsnet imovelpro-frontend 2>&1)
+            CONNECT_EXIT=$?
+            
+            if [ $CONNECT_EXIT -eq 0 ]; then
                 echo -e "${GREEN}   ✅ Frontend conectado à vpsnet${NC}"
+                FRONTEND_CONNECTED=true
             else
-                echo -e "${YELLOW}   ⚠️  Frontend já estava conectado ou erro${NC}"
+                # Verificar se já está conectado
+                if echo "$CONNECT_OUTPUT" | grep -qE "(already|already exists)"; then
+                    echo -e "${GREEN}   ✅ Frontend já estava conectado à vpsnet${NC}"
+                    FRONTEND_CONNECTED=true
+                else
+                    echo -e "${RED}   ❌ Erro ao conectar Frontend: ${CONNECT_OUTPUT}${NC}"
+                    echo -e "${YELLOW}   ⚠️  Networks overlay do Docker Swarm não permitem conexão de containers externos${NC}"
+                    echo -e "${YELLOW}   ℹ️  Traefik precisará acessar os containers via IP/hostname do host${NC}"
+                fi
             fi
         fi
         
         if docker ps --format "{{.Names}}" | grep -q "imovelpro-backend"; then
-            if docker network connect vpsnet imovelpro-backend 2>/dev/null; then
+            # Tentar conectar e capturar erro
+            CONNECT_OUTPUT=$(docker network connect vpsnet imovelpro-backend 2>&1)
+            CONNECT_EXIT=$?
+            
+            if [ $CONNECT_EXIT -eq 0 ]; then
                 echo -e "${GREEN}   ✅ Backend conectado à vpsnet${NC}"
+                BACKEND_CONNECTED=true
             else
-                echo -e "${YELLOW}   ⚠️  Backend já estava conectado ou erro${NC}"
+                # Verificar se já está conectado
+                if echo "$CONNECT_OUTPUT" | grep -qE "(already|already exists)"; then
+                    echo -e "${GREEN}   ✅ Backend já estava conectado à vpsnet${NC}"
+                    BACKEND_CONNECTED=true
+                else
+                    echo -e "${RED}   ❌ Erro ao conectar Backend: ${CONNECT_OUTPUT}${NC}"
+                    echo -e "${YELLOW}   ⚠️  Networks overlay do Docker Swarm não permitem conexão de containers externos${NC}"
+                    echo -e "${YELLOW}   ℹ️  Traefik precisará acessar os containers via IP/hostname do host${NC}"
+                fi
             fi
         fi
         
@@ -247,7 +276,32 @@ if [ "$USE_MANUAL_CONNECTION" = "true" ] && [ "$VPSNET_EXISTS" = "true" ]; then
             rm -f docker-compose.temp.yml
         fi
         
-        echo -e "${GREEN}✅ Containers conectados à network vpsnet${NC}"
+        # Verificar se realmente estão conectados
+        sleep 2
+        echo -e "${BLUE}   Verificando conexão...${NC}"
+        
+        if docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null | grep -q "imovelpro-frontend"; then
+            echo -e "${GREEN}   ✅ Frontend confirmado na network vpsnet${NC}"
+            FRONTEND_CONNECTED=true
+        else
+            echo -e "${YELLOW}   ⚠️  Frontend NÃO está na network vpsnet${NC}"
+        fi
+        
+        if docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null | grep -q "imovelpro-backend"; then
+            echo -e "${GREEN}   ✅ Backend confirmado na network vpsnet${NC}"
+            BACKEND_CONNECTED=true
+        else
+            echo -e "${YELLOW}   ⚠️  Backend NÃO está na network vpsnet${NC}"
+        fi
+        
+        if [ "$FRONTEND_CONNECTED" = "false" ] || [ "$BACKEND_CONNECTED" = "false" ]; then
+            echo -e "${YELLOW}⚠️  ATENÇÃO: Containers não conseguiram se conectar à network vpsnet${NC}"
+            echo -e "${YELLOW}   Isso é normal para networks overlay do Docker Swarm${NC}"
+            echo -e "${BLUE}   Solução: Configurar Traefik para acessar via host.docker.internal ou IP do host${NC}"
+            echo -e "${BLUE}   OU tornar a network attachable no stack do Traefik${NC}"
+        else
+            echo -e "${GREEN}✅ Containers conectados à network vpsnet${NC}"
+        fi
     else
         echo -e "${RED}❌ Erro ao iniciar containers${NC}"
         if [ "$COMPOSE_FILE" = "docker-compose.temp.yml" ]; then
