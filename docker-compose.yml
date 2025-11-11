@@ -12,6 +12,7 @@ services:
     restart: unless-stopped
     networks:
       - imovelpro-network
+      - vpsnet
     depends_on:
       backend:
         condition: service_healthy
@@ -24,10 +25,17 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.imovelpro-frontend.rule=Host(`imob.locusup.shop`)"
-      - "traefik.http.routers.imovelpro-frontend.entrypoints=web,websecure"
+      - "traefik.http.routers.imovelpro-frontend.entrypoints=websecure"
       - "traefik.http.routers.imovelpro-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.imovelpro-frontend.tls=true"
       - "traefik.http.services.imovelpro-frontend.loadbalancer.server.port=80"
       - "traefik.docker.network=vpsnet"
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.imovelpro-frontend-http.rule=Host(`imob.locusup.shop`)"
+      - "traefik.http.routers.imovelpro-frontend-http.entrypoints=web"
+      - "traefik.http.routers.imovelpro-frontend-http.middlewares=redirect-to-https-frontend"
+      - "traefik.http.middlewares.redirect-to-https-frontend.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https-frontend.redirectscheme.permanent=true"
 
   backend:
     build:
@@ -41,6 +49,7 @@ services:
     restart: unless-stopped
     networks:
       - imovelpro-network
+      - vpsnet
     environment:
       - PORT=4000
       - CORS_ORIGINS=https://imob.locusup.shop
@@ -54,11 +63,21 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.imovelpro-backend.rule=Host(`apiapi.jyze.space`)"
-      - "traefik.http.routers.imovelpro-backend.entrypoints=web,websecure"
+      - "traefik.http.routers.imovelpro-backend.entrypoints=websecure"
       - "traefik.http.routers.imovelpro-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.imovelpro-backend.tls=true"
       - "traefik.http.services.imovelpro-backend.loadbalancer.server.port=4000"
       - "traefik.docker.network=vpsnet"
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.imovelpro-backend-http.rule=Host(`apiapi.jyze.space`)"
+      - "traefik.http.routers.imovelpro-backend-http.entrypoints=web"
+      - "traefik.http.routers.imovelpro-backend-http.middlewares=redirect-to-https-backend"
+      - "traefik.http.middlewares.redirect-to-https-backend.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https-backend.redirectscheme.permanent=true"
 
 networks:
   imovelpro-network:
     driver: bridge
+  vpsnet:
+    external: true
+    name: vpsnet

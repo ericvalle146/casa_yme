@@ -155,45 +155,51 @@ else
     exit 1
 fi
 
-# Verificar network vpsnet (NUNCA REMOVER, apenas verificar)
+# Verificar network vpsnet (OBRIGATÓRIA para Traefik)
 echo -e "${YELLOW}🔍 Verificando network vpsnet...${NC}"
 if docker network inspect vpsnet >/dev/null 2>&1; then
     IS_ATTACHABLE=$(docker network inspect vpsnet --format '{{.Attachable}}' 2>/dev/null || echo "false")
     if [ "$IS_ATTACHABLE" != "true" ]; then
-        echo -e "${YELLOW}⚠️  Network vpsnet não é attachable${NC}"
-        echo -e "${RED}❌ NÃO É POSSÍVEL tornar attachable sem remover a network${NC}"
+        echo -e "${RED}❌ ERRO CRÍTICO: Network vpsnet não é attachable${NC}"
+        echo -e "${YELLOW}   O docker-compose.yml requer que a network vpsnet seja attachable${NC}"
         echo -e "${YELLOW}   Para tornar attachable, você precisa fazer manualmente:${NC}"
-        echo -e "${BLUE}   1. Parar todos os serviços: docker stack rm <stack-name>${NC}"
+        echo -e "${BLUE}   1. Parar todos os serviços que usam vpsnet (incluindo Traefik)${NC}"
         echo -e "${BLUE}   2. Remover network: docker network rm vpsnet${NC}"
         echo -e "${BLUE}   3. Recriar: docker network create --driver bridge --attachable vpsnet${NC}"
-        echo -e "${BLUE}   4. Subir serviços novamente${NC}"
-        echo -e "${YELLOW}   OU simplesmente conectar os containers manualmente após iniciar${NC}"
+        echo -e "${BLUE}   4. Reiniciar todos os serviços${NC}"
         echo ""
-        echo -e "${YELLOW}   Continuando... containers serão conectados manualmente após iniciar${NC}"
+        echo -e "${YELLOW}   OU use o script fix-vpsnet.sh para tentar corrigir automaticamente${NC}"
+        echo ""
+        read -p "Deseja continuar mesmo assim? (s/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Ss]$ ]]; then
+            echo -e "${RED}   Deploy cancelado. Corrija a network vpsnet primeiro.${NC}"
+            exit 1
+        fi
+        echo -e "${YELLOW}   Continuando... mas o Traefik pode não funcionar corretamente${NC}"
     else
-        echo -e "${GREEN}✅ Network vpsnet já é attachable${NC}"
+        echo -e "${GREEN}✅ Network vpsnet encontrada e attachable${NC}"
     fi
 else
     echo -e "${YELLOW}⚠️  Network vpsnet não encontrada. Criando...${NC}"
-    docker network create --driver bridge --attachable vpsnet 2>/dev/null && echo -e "${GREEN}✅ Network vpsnet criada${NC}" || echo -e "${RED}❌ Erro ao criar network${NC}"
+    if docker network create --driver bridge --attachable vpsnet 2>/dev/null; then
+        echo -e "${GREEN}✅ Network vpsnet criada${NC}"
+    else
+        echo -e "${RED}❌ Erro ao criar network vpsnet${NC}"
+        echo -e "${YELLOW}   A network pode já existir com outro driver. Verifique manualmente.${NC}"
+        exit 1
+    fi
 fi
 
 # Iniciar containers
 echo -e "${GREEN}🚀 Iniciando containers...${NC}"
 if $DOCKER_COMPOSE_CMD up -d; then
     echo -e "${GREEN}✅ Containers iniciados com sucesso${NC}"
-    
-    # Conectar containers à network vpsnet do Traefik
-    echo -e "${YELLOW}🔗 Conectando containers à network vpsnet do Traefik...${NC}"
-    if docker network inspect vpsnet >/dev/null 2>&1; then
-        docker network connect vpsnet imovelpro-frontend 2>/dev/null && echo -e "${GREEN}   ✅ Frontend conectado${NC}" || echo -e "${YELLOW}   ⚠️  Frontend já conectado ou erro${NC}"
-        docker network connect vpsnet imovelpro-backend 2>/dev/null && echo -e "${GREEN}   ✅ Backend conectado${NC}" || echo -e "${YELLOW}   ⚠️  Backend já conectado ou erro${NC}"
-        echo -e "${GREEN}✅ Containers conectados à network vpsnet${NC}"
-    else
-        echo -e "${RED}❌ Network vpsnet não encontrada após iniciar containers${NC}"
-    fi
+    echo -e "${BLUE}ℹ️  Containers conectados automaticamente à network vpsnet via docker-compose.yml${NC}"
 else
     echo -e "${RED}❌ Erro ao iniciar containers${NC}"
+    echo -e "${YELLOW}   Verifique se a network vpsnet existe e é attachable${NC}"
+    echo -e "${YELLOW}   Execute: docker network inspect vpsnet${NC}"
     exit 1
 fi
 
@@ -222,14 +228,35 @@ TRAEFIK_RUNNING=$(docker ps --format "{{.Names}}" | grep -i traefik || echo "")
 if [ ! -z "$TRAEFIK_RUNNING" ]; then
     echo -e "${GREEN}✅ Traefik detectado: ${TRAEFIK_RUNNING}${NC}"
     echo -e "${BLUE}ℹ️  Usando Traefik existente para proxy reverso${NC}"
-    echo -e "${BLUE}ℹ️  Os containers serão configurados com labels do Traefik${NC}"
     
-    # Verificar se os containers precisam estar na mesma network do Traefik
-    TRAEFIK_NETWORK=$(docker inspect $TRAEFIK_RUNNING --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}}{{end}}' | head -1)
-    if [ ! -z "$TRAEFIK_NETWORK" ]; then
-        echo -e "${BLUE}ℹ️  Traefik está na network: ${TRAEFIK_NETWORK}${NC}"
-        echo -e "${YELLOW}⚠️  Certifique-se de que os containers estão na mesma network do Traefik${NC}"
+    # Verificar se o Traefik está na network vpsnet
+    TRAEFIK_NETWORKS=$(docker inspect $TRAEFIK_RUNNING --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null || echo "")
+    if echo "$TRAEFIK_NETWORKS" | grep -q "vpsnet"; then
+        echo -e "${GREEN}✅ Traefik está na network vpsnet${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Traefik não está na network vpsnet${NC}"
+        echo -e "${YELLOW}   Networks do Traefik: ${TRAEFIK_NETWORKS}${NC}"
+        echo -e "${YELLOW}   O Traefik precisa estar na network vpsnet para funcionar corretamente${NC}"
     fi
+    
+    # Verificar se os containers estão na network vpsnet
+    echo -e "${BLUE}🔍 Verificando conexão dos containers à network vpsnet...${NC}"
+    if docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null | grep -q "imovelpro-frontend"; then
+        echo -e "${GREEN}✅ Frontend está na network vpsnet${NC}"
+    else
+        echo -e "${RED}❌ Frontend NÃO está na network vpsnet${NC}"
+    fi
+    if docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null | grep -q "imovelpro-backend"; then
+        echo -e "${GREEN}✅ Backend está na network vpsnet${NC}"
+    else
+        echo -e "${RED}❌ Backend NÃO está na network vpsnet${NC}"
+    fi
+    
+    echo -e "${BLUE}ℹ️  Os containers serão configurados com labels do Traefik${NC}"
+    echo -e "${BLUE}ℹ️  Domínios configurados:${NC}"
+    echo -e "${BLUE}   - Frontend: https://imob.locusup.shop${NC}"
+    echo -e "${BLUE}   - Backend: https://apiapi.jyze.space${NC}"
+    echo -e "${YELLOW}⚠️  Certifique-se de que os domínios apontam para o IP do servidor${NC}"
 else
     echo -e "${YELLOW}⚠️  Traefik não encontrado. Verificando Nginx...${NC}"
     
@@ -238,7 +265,7 @@ else
         echo -e "${GREEN}✅ Nginx detectado e rodando${NC}"
         echo -e "${BLUE}ℹ️  Nginx já está configurado e funcionando${NC}"
     else
-        echo -e "${YELLOW}⚠️  Nenhum proxy reverso detectado. Containers estarão acessíveis apenas nas portas 8080 e 4000${NC}"
+        echo -e "${YELLOW}⚠️  Nenhum proxy reverso detectado. Containers estarão acessíveis apenas nas portas 3429 e 4000${NC}"
     fi
 fi
 
