@@ -59,7 +59,7 @@ Este script:
 #### Com Docker Compose
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 #### Com Docker Swarm
@@ -76,7 +76,7 @@ chmod +x deploy-swarm.sh
 
 ```bash
 # Docker Compose
-docker-compose ps
+docker compose ps
 
 # Docker Swarm
 docker service ls | grep imovelpro
@@ -86,7 +86,7 @@ docker service ls | grep imovelpro
 
 ```bash
 # Docker Compose
-docker-compose logs -f
+docker compose logs -f
 
 # Docker Swarm
 docker service logs -f imovelpro_frontend
@@ -154,7 +154,7 @@ docker network create --driver overlay --attachable vpsnet
 
 **Verificar logs:**
 ```bash
-docker-compose logs
+docker compose logs
 # ou
 docker service logs imovelpro_backend
 ```
@@ -169,7 +169,7 @@ sudo netstat -tulpn | grep -E ':(80|4000|3429)'
 **Verificar:**
 1. Se o arquivo `.env` está configurado corretamente
 2. Se o `N8N_WEBHOOK_URL` está correto
-3. Logs do backend: `docker-compose logs backend`
+3. Logs do backend: `docker compose logs backend`
 
 ## 📝 Estrutura do Deploy
 
@@ -204,7 +204,7 @@ O script automaticamente:
 
 ### Docker Compose
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### Docker Swarm
@@ -217,7 +217,7 @@ docker stack rm imovelpro
 Se encontrar problemas:
 
 1. Execute `./verificar-traefik.sh` para diagnosticar
-2. Verifique os logs: `docker-compose logs` ou `docker service logs`
+2. Verifique os logs: `docker compose logs` ou `docker service logs`
 3. Verifique se o Traefik está configurado corretamente
 4. Verifique se os domínios estão apontando para o IP correto
 

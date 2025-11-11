@@ -32,7 +32,7 @@ check_command() {
 # Verificar dependências
 echo -e "${BLUE}[1/10] Verificando dependências...${NC}"
 check_command docker
-check_command docker-compose
+# docker compose é parte do Docker CLI, não precisa verificar separadamente
 
 if ! docker info >/dev/null 2>&1; then
     echo -e "${RED}❌ Docker não está rodando${NC}"
@@ -151,9 +151,9 @@ echo ""
 echo -e "${BLUE}[6/10] Parando containers antigos...${NC}"
 cd "$PROJECT_ROOT"
 
-# Parar docker-compose se estiver rodando
-docker-compose -f docker-compose.yml down 2>/dev/null || true
-docker-compose -f docker-compose.standalone.yml down 2>/dev/null || true
+# Parar docker compose se estiver rodando
+docker compose -f docker-compose.yml down 2>/dev/null || true
+docker compose -f docker-compose.standalone.yml down 2>/dev/null || true
 
 # Parar containers individuais
 docker stop imovelpro-frontend imovelpro-backend 2>/dev/null || true
@@ -268,7 +268,7 @@ else
     echo -e "${BLUE}   Deployando com Docker Compose...${NC}"
     
     # Usar docker-compose.yml que já tem a network vpsnet
-    docker-compose -f docker-compose.yml up -d || {
+    docker compose -f docker-compose.yml up -d || {
         echo -e "${RED}❌ Erro ao fazer deploy${NC}"
         exit 1
     }
@@ -360,9 +360,9 @@ if [ "$SWARM_MODE" = true ]; then
     echo -e "   - Ver logs: ${YELLOW}docker service logs -f imovelpro_frontend${NC}"
     echo -e "   - Remover: ${YELLOW}docker stack rm imovelpro${NC}"
 else
-    echo -e "   - Ver status: ${YELLOW}docker-compose ps${NC}"
-    echo -e "   - Ver logs: ${YELLOW}docker-compose logs -f${NC}"
-    echo -e "   - Parar: ${YELLOW}docker-compose down${NC}"
+    echo -e "   - Ver status: ${YELLOW}docker compose ps${NC}"
+    echo -e "   - Ver logs: ${YELLOW}docker compose logs -f${NC}"
+    echo -e "   - Parar: ${YELLOW}docker compose down${NC}"
 fi
 echo ""
 echo -e "${BLUE}🔍 Verificar SSL:${NC}"

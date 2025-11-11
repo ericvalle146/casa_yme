@@ -153,19 +153,19 @@ O projeto inclui arquivos Docker para deploy completo na VPS.
 
 ```bash
 # Ver status
-docker-compose ps
+docker compose ps
 
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 
 # Reiniciar
-docker-compose restart
+docker compose restart
 
 # Parar
-docker-compose down
+docker compose down
 
 # Reconstruir
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## Can I connect a custom domain to my Lovable project?

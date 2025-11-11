@@ -61,7 +61,7 @@ O script faz tudo automaticamente!
 
 ```bash
 # Verificar serviços
-docker-compose ps
+docker compose ps
 
 # Verificar SSL
 ./verificar-traefik.sh
@@ -150,25 +150,25 @@ Use o script `configurar-traefik-acme.sh` para ajudar com isso.
 
 ```bash
 # Ver status dos serviços
-docker-compose ps
+docker compose ps
 
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 
 # Ver logs do backend
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Ver logs do frontend
-docker-compose logs -f frontend
+docker compose logs -f frontend
 
 # Parar tudo
-docker-compose down
+docker compose down
 
 # Reiniciar
-docker-compose restart
+docker compose restart
 
 # Reconstruir e reiniciar
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## ✅ Checklist Final
@@ -178,7 +178,7 @@ docker-compose up -d --build
 - [ ] Traefik com Let's Encrypt configurado
 - [ ] Domínios apontando para o IP da VPS
 - [ ] Deploy executado com `./deploy-completo.sh`
-- [ ] Serviços rodando (`docker-compose ps`)
+- [ ] Serviços rodando (`docker compose ps`)
 - [ ] Certificados SSL válidos (verificado com `./verificar-traefik.sh`)
 - [ ] Frontend acessível em `https://imob.locusup.shop`
 - [ ] Backend acessível em `https://apiapi.jyze.space/health`

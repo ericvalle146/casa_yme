@@ -80,7 +80,7 @@ EOF
     echo -e "${YELLOW}   docker exec $TRAEFIK_CONTAINER mkdir -p /letsencrypt${NC}"
     echo -e "${YELLOW}   docker exec $TRAEFIK_CONTAINER chmod 600 /letsencrypt/acme.json${NC}"
     echo ""
-    echo -e "${CYAN}3. Adicionar volume no docker-compose/stack do Traefik:${NC}"
+    echo -e "${CYAN}3. Adicionar volume no docker compose/stack do Traefik:${NC}"
     echo -e "${YELLOW}   volumes:${NC}"
     echo -e "${YELLOW}     - ./letsencrypt:/letsencrypt${NC}"
     echo ""

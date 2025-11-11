@@ -58,12 +58,12 @@ chmod +x deploy-completo.sh
 
 **Ver logs:**
 ```bash
-docker-compose logs -f
+docker compose logs -f
 ```
 
 **Ver status:**
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 **Verificar SSL:**
