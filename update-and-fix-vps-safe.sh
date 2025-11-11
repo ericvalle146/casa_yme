@@ -233,3 +233,4 @@ echo -e "   2. Verificar network: docker network inspect vpsnet"
 echo -e "   3. Executar diagnóstico: ./diagnose-traefik.sh"
 echo -e "   4. Testar domínios: curl -I https://imob.locusup.shop"
 
+

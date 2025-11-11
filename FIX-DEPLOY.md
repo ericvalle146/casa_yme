@@ -209,3 +209,4 @@ Se você continuar tendo problemas após seguir este guia:
 3. Verifique a configuração do Traefik
 4. Consulte o `TROUBLESHOOTING.md` para mais informações
 
+

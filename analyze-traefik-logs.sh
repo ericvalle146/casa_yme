@@ -110,3 +110,4 @@ echo -e "${BLUE}   3. Aguarde alguns minutos para o Let's Encrypt tentar validar
 echo -e "${BLUE}   4. Verifique novamente os certificados:${NC}"
 echo -e "${BLUE}      ${YELLOW}echo | openssl s_client -connect apiapi.jyze.space:443 -servername apiapi.jyze.space 2>&1 | grep -A 2 'Certificate chain\|CN ='${NC}"
 
+

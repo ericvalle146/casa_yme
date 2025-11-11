@@ -244,3 +244,4 @@ docker network rm prototipo_mariana_imobiliarias_imovelpro-network 2>/dev/null |
 - `../docker-compose.yml` - Configuração antiga (não funciona com Swarm)
 - `../PROBLEMA-COMPLETO.md` - Documentação completa do problema
 
+

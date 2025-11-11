@@ -160,3 +160,4 @@ Para mais informações, consulte:
 - `TROUBLESHOOTING.md` - Guia completo de troubleshooting
 - Execute `./diagnose-traefik.sh` para diagnóstico automático
 
+

@@ -86,3 +86,4 @@ echo ""
 echo -e "${GREEN}✅ Processo concluído!${NC}"
 echo -e "${BLUE}   Aguarde 30 segundos e teste os domínios${NC}"
 
+

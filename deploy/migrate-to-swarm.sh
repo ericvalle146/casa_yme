@@ -97,3 +97,4 @@ else
     echo -e "${YELLOW}   Execute manualmente: ./deploy/deploy-swarm.sh${NC}"
 fi
 
+
