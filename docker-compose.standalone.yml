@@ -27,7 +27,7 @@ services:
       - "traefik.http.routers.imovelpro-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.imovelpro-frontend.tls=true"
       - "traefik.http.services.imovelpro-frontend.loadbalancer.server.port=80"
-      - "traefik.docker.network=prototipo_mariana_imobiliarias_imovelpro-network"
+      - "traefik.http.services.imovelpro-frontend.loadbalancer.server.scheme=http"
       - "traefik.http.routers.imovelpro-frontend-http.rule=Host(`imob.locusup.shop`)"
       - "traefik.http.routers.imovelpro-frontend-http.entrypoints=web"
       - "traefik.http.routers.imovelpro-frontend-http.middlewares=redirect-to-https-frontend"
@@ -63,7 +63,7 @@ services:
       - "traefik.http.routers.imovelpro-backend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.imovelpro-backend.tls=true"
       - "traefik.http.services.imovelpro-backend.loadbalancer.server.port=4000"
-      - "traefik.docker.network=prototipo_mariana_imobiliarias_imovelpro-network"
+      - "traefik.http.services.imovelpro-backend.loadbalancer.server.scheme=http"
       - "traefik.http.routers.imovelpro-backend-http.rule=Host(`apiapi.jyze.space`)"
       - "traefik.http.routers.imovelpro-backend-http.entrypoints=web"
       - "traefik.http.routers.imovelpro-backend-http.middlewares=redirect-to-https-backend"
@@ -74,4 +74,3 @@ networks:
   imovelpro-network:
     driver: bridge
     attachable: true
-
