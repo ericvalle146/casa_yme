@@ -11,7 +11,7 @@ services:
       - "8080:80"
     restart: unless-stopped
     networks:
-      - imovelpro-network
+      - vpsnet
     depends_on:
       backend:
         condition: service_healthy
@@ -27,7 +27,7 @@ services:
       - "traefik.http.routers.imovelpro-frontend.entrypoints=web,websecure"
       - "traefik.http.routers.imovelpro-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.imovelpro-frontend.loadbalancer.server.port=80"
-      - "traefik.docker.network=imovelpro-network"
+      - "traefik.docker.network=vpsnet"
 
   backend:
     build:
@@ -40,7 +40,7 @@ services:
       - "4000:4000"
     restart: unless-stopped
     networks:
-      - imovelpro-network
+      - vpsnet
     environment:
       - PORT=4000
       - CORS_ORIGINS=https://imob.locusup.shop
@@ -57,9 +57,8 @@ services:
       - "traefik.http.routers.imovelpro-backend.entrypoints=web,websecure"
       - "traefik.http.routers.imovelpro-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.imovelpro-backend.loadbalancer.server.port=4000"
-      - "traefik.docker.network=imovelpro-network"
+      - "traefik.docker.network=vpsnet"
 
 networks:
-  imovelpro-network:
-    driver: bridge
-    external: false
+  vpsnet:
+    external: true
