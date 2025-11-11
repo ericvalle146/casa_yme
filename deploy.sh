@@ -155,10 +155,70 @@ else
     exit 1
 fi
 
+# Verificar e tornar vpsnet attachable se necessário
+echo -e "${YELLOW}🔍 Verificando network vpsnet...${NC}"
+if docker network inspect vpsnet >/dev/null 2>&1; then
+    IS_ATTACHABLE=$(docker network inspect vpsnet --format '{{.Attachable}}' 2>/dev/null || echo "false")
+    if [ "$IS_ATTACHABLE" != "true" ]; then
+        echo -e "${YELLOW}⚠️  Network vpsnet não é attachable. Tentando tornar attachable...${NC}"
+        echo -e "${YELLOW}   Isso requer que você execute na VPS:${NC}"
+        echo -e "${BLUE}   docker network rm vpsnet${NC}"
+        echo -e "${BLUE}   docker network create --driver bridge --attachable vpsnet${NC}"
+        echo -e "${YELLOW}   ⚠️  ATENÇÃO: Isso pode afetar outros containers conectados à vpsnet${NC}"
+        echo ""
+        read -p "Deseja tentar tornar attachable automaticamente? (s/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Ss]$ ]]; then
+            echo -e "${YELLOW}🔄 Recriando network vpsnet como attachable...${NC}"
+            # Desconectar todos os containers primeiro
+            CONTAINERS=$(docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+            if [ ! -z "$CONTAINERS" ]; then
+                echo -e "${YELLOW}   Desconectando containers existentes...${NC}"
+                for container in $CONTAINERS; do
+                    docker network disconnect vpsnet $container 2>/dev/null || true
+                done
+            fi
+            # Remover e recriar
+            docker network rm vpsnet 2>/dev/null || true
+            sleep 2
+            if docker network create --driver bridge --attachable vpsnet 2>/dev/null; then
+                echo -e "${GREEN}✅ Network vpsnet recriada como attachable${NC}"
+                # Reconectar containers que foram desconectados
+                if [ ! -z "$CONTAINERS" ]; then
+                    echo -e "${YELLOW}   Reconectando containers...${NC}"
+                    for container in $CONTAINERS; do
+                        docker network connect vpsnet $container 2>/dev/null || true
+                    done
+                fi
+            else
+                echo -e "${RED}❌ Erro ao recriar network. Execute manualmente os comandos acima.${NC}"
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}   Pulando recriação da network. Containers serão conectados após iniciar.${NC}"
+        fi
+    else
+        echo -e "${GREEN}✅ Network vpsnet já é attachable${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  Network vpsnet não encontrada. Criando...${NC}"
+    docker network create --driver bridge --attachable vpsnet 2>/dev/null || echo -e "${YELLOW}   Erro ao criar network${NC}"
+fi
+
 # Iniciar containers
 echo -e "${GREEN}🚀 Iniciando containers...${NC}"
 if $DOCKER_COMPOSE_CMD up -d; then
     echo -e "${GREEN}✅ Containers iniciados com sucesso${NC}"
+    
+    # Conectar containers à network vpsnet do Traefik
+    echo -e "${YELLOW}🔗 Conectando containers à network vpsnet do Traefik...${NC}"
+    if docker network inspect vpsnet >/dev/null 2>&1; then
+        docker network connect vpsnet imovelpro-frontend 2>/dev/null && echo -e "${GREEN}   ✅ Frontend conectado${NC}" || echo -e "${YELLOW}   ⚠️  Frontend já conectado ou erro${NC}"
+        docker network connect vpsnet imovelpro-backend 2>/dev/null && echo -e "${GREEN}   ✅ Backend conectado${NC}" || echo -e "${YELLOW}   ⚠️  Backend já conectado ou erro${NC}"
+        echo -e "${GREEN}✅ Containers conectados à network vpsnet${NC}"
+    else
+        echo -e "${RED}❌ Network vpsnet não encontrada após iniciar containers${NC}"
+    fi
 else
     echo -e "${RED}❌ Erro ao iniciar containers${NC}"
     exit 1

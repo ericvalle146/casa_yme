@@ -11,6 +11,7 @@ services:
       - "8080:80"
     restart: unless-stopped
     networks:
+      - imovelpro-network
       - vpsnet
     depends_on:
       backend:
@@ -40,7 +41,7 @@ services:
       - "4000:4000"
     restart: unless-stopped
     networks:
-      - vpsnet
+      - imovelpro-network
     environment:
       - PORT=4000
       - CORS_ORIGINS=https://imob.locusup.shop
@@ -60,5 +61,7 @@ services:
       - "traefik.docker.network=vpsnet"
 
 networks:
+  imovelpro-network:
+    driver: bridge
   vpsnet:
     external: true
