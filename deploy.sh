@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🚀 Iniciando deploy do ImóvelPro..."
+echo "🚀 Iniciando deploy automático do ImóvelPro..."
 
 # Cores para output
 RED='\033[0;31m'
@@ -16,24 +16,63 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Verificar se Docker está instalado
+# Função para instalar Docker
+install_docker() {
+    echo -e "${YELLOW}📦 Instalando Docker...${NC}"
+    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+    sudo sh /tmp/get-docker.sh
+    sudo usermod -aG docker $USER
+    rm /tmp/get-docker.sh
+    echo -e "${GREEN}✅ Docker instalado${NC}"
+}
+
+# Função para instalar Docker Compose
+install_docker_compose() {
+    echo -e "${YELLOW}📦 Instalando Docker Compose...${NC}"
+    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo chmod +x /usr/local/bin/docker-compose
+    echo -e "${GREEN}✅ Docker Compose instalado${NC}"
+}
+
+# Função para instalar Nginx
+install_nginx() {
+    echo -e "${YELLOW}📦 Instalando Nginx...${NC}"
+    sudo apt update -qq
+    sudo apt install -y nginx
+    sudo systemctl enable nginx
+    echo -e "${GREEN}✅ Nginx instalado${NC}"
+}
+
+# Função para instalar Certbot
+install_certbot() {
+    echo -e "${YELLOW}📦 Instalando Certbot...${NC}"
+    sudo apt install -y certbot python3-certbot-nginx
+    echo -e "${GREEN}✅ Certbot instalado${NC}"
+}
+
+# Verificar e instalar Docker
 if ! command_exists docker; then
-    echo -e "${RED}❌ Docker não está instalado. Por favor, instale o Docker primeiro.${NC}"
-    exit 1
+    echo -e "${YELLOW}⚠️  Docker não encontrado. Instalando...${NC}"
+    install_docker
+    echo -e "${YELLOW}⚠️  Você precisará fazer logout/login ou executar: newgrp docker${NC}"
+    newgrp docker || true
+else
+    echo -e "${GREEN}✅ Docker encontrado${NC}"
 fi
 
-# Verificar se Docker Compose está instalado (tenta ambas as versões)
+# Verificar e instalar Docker Compose
 DOCKER_COMPOSE_CMD=""
 if command_exists docker-compose; then
     DOCKER_COMPOSE_CMD="docker-compose"
 elif docker compose version >/dev/null 2>&1; then
     DOCKER_COMPOSE_CMD="docker compose"
 else
-    echo -e "${RED}❌ Docker Compose não está instalado. Por favor, instale o Docker Compose primeiro.${NC}"
-    exit 1
+    echo -e "${YELLOW}⚠️  Docker Compose não encontrado. Instalando...${NC}"
+    install_docker_compose
+    DOCKER_COMPOSE_CMD="docker-compose"
 fi
 
-echo -e "${GREEN}✅ Docker e Docker Compose encontrados${NC}"
+echo -e "${GREEN}✅ Docker e Docker Compose prontos${NC}"
 echo -e "${BLUE}ℹ️  Usando comando: ${DOCKER_COMPOSE_CMD}${NC}"
 
 # Verificar se estamos no diretório correto
@@ -43,7 +82,7 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
-# Criar diretório server se não existir
+# Verificar se diretório server existe
 if [ ! -d "./server" ]; then
     echo -e "${RED}❌ Diretório server/ não encontrado.${NC}"
     exit 1
@@ -53,28 +92,23 @@ fi
 if [ ! -f "./server/.env" ]; then
     echo -e "${YELLOW}⚠️  Arquivo server/.env não encontrado. Criando automaticamente...${NC}"
     
-    # Verificar se existe o arquivo de exemplo
     if [ ! -f "./server/env.example" ]; then
         echo -e "${RED}❌ Arquivo server/env.example não encontrado.${NC}"
         exit 1
     fi
     
-    # Criar o arquivo .env a partir do exemplo
     cp ./server/env.example ./server/.env
     
-    # Verificar se o arquivo foi criado
     if [ ! -f "./server/.env" ]; then
         echo -e "${RED}❌ Erro ao criar arquivo server/.env${NC}"
         exit 1
     fi
     
-    echo -e "${GREEN}✅ Arquivo server/.env criado com sucesso${NC}"
+    echo -e "${GREEN}✅ Arquivo server/.env criado${NC}"
     echo -e "${YELLOW}⚠️  IMPORTANTE: Configure o N8N_WEBHOOK_URL no arquivo server/.env${NC}"
     echo ""
-    echo -e "${BLUE}📝 Abrindo arquivo para edição...${NC}"
-    echo ""
+    echo -e "${BLUE}📝 Editando server/.env...${NC}"
     
-    # Tentar abrir o arquivo com editor padrão
     if command_exists nano; then
         nano ./server/.env
     elif command_exists vim; then
@@ -89,7 +123,7 @@ else
     echo -e "${GREEN}✅ Arquivo server/.env já existe${NC}"
 fi
 
-# Verificar se N8N_WEBHOOK_URL está configurado corretamente
+# Verificar se N8N_WEBHOOK_URL está configurado
 if grep -q "https://seu-servidor-n8n.com/webhook/endpoint" ./server/.env 2>/dev/null; then
     echo -e "${YELLOW}⚠️  ATENÇÃO: N8N_WEBHOOK_URL ainda está com o valor padrão!${NC}"
     echo -e "${YELLOW}   Por favor, configure o webhook do N8N no arquivo server/.env${NC}"
@@ -112,14 +146,6 @@ fi
 echo -e "${YELLOW}🛑 Parando containers existentes...${NC}"
 $DOCKER_COMPOSE_CMD down || true
 
-# Remover imagens antigas (opcional)
-read -p "Deseja remover imagens antigas antes do build? (s/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Ss]$ ]]; then
-    echo -e "${YELLOW}🗑️  Removendo imagens antigas...${NC}"
-    $DOCKER_COMPOSE_CMD down --rmi all || true
-fi
-
 # Build das imagens
 echo -e "${GREEN}🔨 Construindo imagens Docker...${NC}"
 if $DOCKER_COMPOSE_CMD build --no-cache; then
@@ -140,7 +166,7 @@ fi
 
 # Aguardar containers iniciarem
 echo -e "${YELLOW}⏳ Aguardando containers iniciarem...${NC}"
-sleep 15
+sleep 20
 
 # Verificar status dos containers
 echo -e "${GREEN}📊 Status dos containers:${NC}"
@@ -155,29 +181,109 @@ if echo "$CONTAINER_STATUS" | grep -qE "(Up|running)" || [ -z "$CONTAINER_STATUS
     else
         echo -e "${GREEN}✅ Todos os containers estão rodando${NC}"
     fi
-else
-    echo -e "${YELLOW}⚠️  Verifique o status dos containers manualmente${NC}"
 fi
+
+# Verificar e instalar Nginx se necessário
+if ! command_exists nginx; then
+    echo -e "${YELLOW}⚠️  Nginx não encontrado. Instalando...${NC}"
+    install_nginx
+fi
+
+# Criar diretórios do Nginx se não existirem
+sudo mkdir -p /etc/nginx/sites-available
+sudo mkdir -p /etc/nginx/sites-enabled
+
+# Configurar Nginx automaticamente
+echo -e "${GREEN}🔧 Configurando Nginx...${NC}"
+
+# Parar Nginx temporariamente se estiver rodando na porta 80
+if sudo systemctl is-active --quiet nginx; then
+    echo -e "${YELLOW}🛑 Parando Nginx temporariamente...${NC}"
+    sudo systemctl stop nginx || true
+fi
+
+# Copiar configuração do Nginx
+sudo cp nginx-proxy.conf /etc/nginx/sites-available/imovelpro
+
+# Criar link simbólico
+sudo rm -f /etc/nginx/sites-enabled/imovelpro
+sudo ln -sf /etc/nginx/sites-available/imovelpro /etc/nginx/sites-enabled/
+
+# Remover configuração padrão
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Testar configuração do Nginx
+if sudo nginx -t 2>/dev/null; then
+    echo -e "${GREEN}✅ Configuração do Nginx válida${NC}"
+else
+    echo -e "${YELLOW}⚠️  Configuração do Nginx tem problemas, mas continuando...${NC}"
+fi
+
+# Iniciar/Recarregar Nginx
+echo -e "${GREEN}🔄 Iniciando Nginx...${NC}"
+sudo systemctl start nginx || true
+sudo systemctl reload nginx || true
+sudo systemctl enable nginx
+
+# Verificar e instalar Certbot se necessário
+if ! command_exists certbot; then
+    echo -e "${YELLOW}⚠️  Certbot não encontrado. Instalando...${NC}"
+    install_certbot
+fi
+
+# Tentar obter certificados SSL automaticamente (não bloqueante)
+echo -e "${GREEN}🔒 Configurando SSL/HTTPS...${NC}"
+echo -e "${YELLOW}⚠️  Isso pode pedir confirmação de email e aceitar termos...${NC}"
+
+# Obter certificado para frontend (não bloqueante)
+if sudo certbot --nginx -d imob.locusup.shop --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect 2>/dev/null; then
+    echo -e "${GREEN}✅ Certificado SSL para imob.locusup.shop configurado${NC}"
+else
+    echo -e "${YELLOW}⚠️  Não foi possível obter certificado SSL para imob.locusup.shop automaticamente${NC}"
+    echo -e "${YELLOW}   Execute manualmente: sudo certbot --nginx -d imob.locusup.shop${NC}"
+fi
+
+# Obter certificado para backend (não bloqueante)
+if sudo certbot --nginx -d apiapi.jyze.space --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect 2>/dev/null; then
+    echo -e "${GREEN}✅ Certificado SSL para apiapi.jyze.space configurado${NC}"
+else
+    echo -e "${YELLOW}⚠️  Não foi possível obter certificado SSL para apiapi.jyze.space automaticamente${NC}"
+    echo -e "${YELLOW}   Execute manualmente: sudo certbot --nginx -d apiapi.jyze.space${NC}"
+fi
+
+# Recarregar Nginx após SSL
+sudo systemctl reload nginx || true
 
 # Verificar logs
 echo -e "${GREEN}📋 Últimas linhas dos logs:${NC}"
-$DOCKER_COMPOSE_CMD logs --tail=50
+$DOCKER_COMPOSE_CMD logs --tail=30
 
 # Verificar health checks
 echo -e "${GREEN}🏥 Verificando health checks...${NC}"
 sleep 5
-$DOCKER_COMPOSE_CMD ps
+
+# Testar endpoints
+echo -e "${GREEN}🧪 Testando endpoints...${NC}"
+if curl -s http://localhost:8080/health >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ Frontend respondendo na porta 8080${NC}"
+else
+    echo -e "${YELLOW}⚠️  Frontend não está respondendo na porta 8080${NC}"
+fi
+
+if curl -s http://localhost:4000/health >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ Backend respondendo na porta 4000${NC}"
+else
+    echo -e "${YELLOW}⚠️  Backend não está respondendo na porta 4000${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}✅ Deploy concluído!${NC}"
 echo ""
-echo -e "${YELLOW}📝 Próximos passos:${NC}"
-echo -e "   1. Configure o Nginx na VPS para apontar para o container frontend (porta 80)"
-echo -e "   2. Configure o SSL/HTTPS para os domínios:"
-echo -e "      - Frontend: https://imob.locusup.shop"
-echo -e "      - Backend: https://apiapi.jyze.space"
-echo -e "   3. Verifique os logs com: ${DOCKER_COMPOSE_CMD} logs -f"
-echo -e "   4. Acesse o frontend em: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')"
+echo -e "${YELLOW}📝 Status Final:${NC}"
+echo -e "   - Containers: $($DOCKER_COMPOSE_CMD ps -q 2>/dev/null | wc -l) rodando"
+echo -e "   - Frontend: http://localhost:8080/health"
+echo -e "   - Backend: http://localhost:4000/health"
+echo -e "   - Nginx: $(sudo systemctl is-active nginx 2>/dev/null || echo 'inativo')"
 echo ""
 echo -e "${BLUE}💡 Comandos úteis:${NC}"
 echo -e "   - Ver logs: ${DOCKER_COMPOSE_CMD} logs -f"
@@ -185,5 +291,8 @@ echo -e "   - Parar: ${DOCKER_COMPOSE_CMD} down"
 echo -e "   - Reiniciar: ${DOCKER_COMPOSE_CMD} restart"
 echo -e "   - Status: ${DOCKER_COMPOSE_CMD} ps"
 echo ""
+echo -e "${YELLOW}⚠️  Se os certificados SSL não foram configurados automaticamente, execute:${NC}"
+echo -e "   sudo certbot --nginx -d imob.locusup.shop"
+echo -e "   sudo certbot --nginx -d apiapi.jyze.space"
+echo ""
 echo -e "${GREEN}🎉 Tudo pronto!${NC}"
-
