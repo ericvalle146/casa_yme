@@ -157,33 +157,37 @@ fi
 
 # Verificar network vpsnet (OBRIGATÓRIA para Traefik)
 echo -e "${YELLOW}🔍 Verificando network vpsnet...${NC}"
+USE_MANUAL_CONNECTION=false
+VPSNET_EXISTS=false
+
 if docker network inspect vpsnet >/dev/null 2>&1; then
+    VPSNET_EXISTS=true
     IS_ATTACHABLE=$(docker network inspect vpsnet --format '{{.Attachable}}' 2>/dev/null || echo "false")
+    SCOPE=$(docker network inspect vpsnet --format '{{.Scope}}' 2>/dev/null || echo "local")
+    DRIVER=$(docker network inspect vpsnet --format '{{.Driver}}' 2>/dev/null || echo "unknown")
+    
+    echo -e "${BLUE}   Driver: ${DRIVER}${NC}"
+    echo -e "${BLUE}   Scope: ${SCOPE}${NC}"
+    echo -e "${BLUE}   Attachable: ${IS_ATTACHABLE}${NC}"
+    
     if [ "$IS_ATTACHABLE" != "true" ]; then
-        echo -e "${RED}❌ ERRO CRÍTICO: Network vpsnet não é attachable${NC}"
-        echo -e "${YELLOW}   O docker-compose.yml requer que a network vpsnet seja attachable${NC}"
-        echo -e "${YELLOW}   Para tornar attachable, você precisa fazer manualmente:${NC}"
-        echo -e "${BLUE}   1. Parar todos os serviços que usam vpsnet (incluindo Traefik)${NC}"
-        echo -e "${BLUE}   2. Remover network: docker network rm vpsnet${NC}"
-        echo -e "${BLUE}   3. Recriar: docker network create --driver bridge --attachable vpsnet${NC}"
-        echo -e "${BLUE}   4. Reiniciar todos os serviços${NC}"
-        echo ""
-        echo -e "${YELLOW}   OU use o script fix-vpsnet.sh para tentar corrigir automaticamente${NC}"
-        echo ""
-        read -p "Deseja continuar mesmo assim? (s/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Ss]$ ]]; then
-            echo -e "${RED}   Deploy cancelado. Corrija a network vpsnet primeiro.${NC}"
-            exit 1
+        if [ "$SCOPE" = "swarm" ] || [ "$DRIVER" = "overlay" ]; then
+            echo -e "${YELLOW}⚠️  Network vpsnet foi criada pelo Docker Swarm e não é attachable${NC}"
+            echo -e "${BLUE}   Modo seguro: Containers serão conectados manualmente após iniciar${NC}"
+            echo -e "${BLUE}   (NÃO vamos parar os stacks do Docker Swarm)${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Network vpsnet não é attachable${NC}"
+            echo -e "${BLUE}   Modo seguro: Containers serão conectados manualmente após iniciar${NC}"
         fi
-        echo -e "${YELLOW}   Continuando... mas o Traefik pode não funcionar corretamente${NC}"
+        USE_MANUAL_CONNECTION=true
     else
         echo -e "${GREEN}✅ Network vpsnet encontrada e attachable${NC}"
     fi
 else
     echo -e "${YELLOW}⚠️  Network vpsnet não encontrada. Criando...${NC}"
     if docker network create --driver bridge --attachable vpsnet 2>/dev/null; then
-        echo -e "${GREEN}✅ Network vpsnet criada${NC}"
+        echo -e "${GREEN}✅ Network vpsnet criada como attachable${NC}"
+        VPSNET_EXISTS=true
     else
         echo -e "${RED}❌ Erro ao criar network vpsnet${NC}"
         echo -e "${YELLOW}   A network pode já existir com outro driver. Verifique manualmente.${NC}"
@@ -193,14 +197,75 @@ fi
 
 # Iniciar containers
 echo -e "${GREEN}🚀 Iniciando containers...${NC}"
-if $DOCKER_COMPOSE_CMD up -d; then
-    echo -e "${GREEN}✅ Containers iniciados com sucesso${NC}"
-    echo -e "${BLUE}ℹ️  Containers conectados automaticamente à network vpsnet via docker-compose.yml${NC}"
+
+if [ "$USE_MANUAL_CONNECTION" = "true" ] && [ "$VPSNET_EXISTS" = "true" ]; then
+    # Modo seguro: usar docker-compose sem vpsnet como external
+    echo -e "${BLUE}   Modo seguro: Criando containers sem vpsnet primeiro...${NC}"
+    echo -e "${BLUE}   (Network vpsnet será conectada manualmente após iniciar)${NC}"
+    
+    # Usar arquivo docker-compose sem vpsnet se existir, senão criar temporário
+    if [ -f "docker-compose.no-vpsnet.yml" ]; then
+        COMPOSE_FILE="docker-compose.no-vpsnet.yml"
+        echo -e "${BLUE}   Usando docker-compose.no-vpsnet.yml${NC}"
+    else
+        # Criar arquivo temporário sem vpsnet
+        grep -v "vpsnet" docker-compose.yml | \
+        grep -v "external: true" | \
+        grep -v "name: vpsnet" > docker-compose.temp.yml 2>/dev/null || true
+        COMPOSE_FILE="docker-compose.temp.yml"
+        echo -e "${BLUE}   Criado docker-compose.temp.yml${NC}"
+    fi
+    
+    # Tentar iniciar com arquivo sem vpsnet
+    if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" up -d 2>&1; then
+        echo -e "${GREEN}✅ Containers iniciados (sem vpsnet)${NC}"
+        
+        # Aguardar containers iniciarem
+        sleep 5
+        
+        # Conectar containers manualmente à network vpsnet
+        echo -e "${BLUE}   Conectando containers à network vpsnet manualmente...${NC}"
+        
+        if docker ps --format "{{.Names}}" | grep -q "imovelpro-frontend"; then
+            if docker network connect vpsnet imovelpro-frontend 2>/dev/null; then
+                echo -e "${GREEN}   ✅ Frontend conectado à vpsnet${NC}"
+            else
+                echo -e "${YELLOW}   ⚠️  Frontend já estava conectado ou erro${NC}"
+            fi
+        fi
+        
+        if docker ps --format "{{.Names}}" | grep -q "imovelpro-backend"; then
+            if docker network connect vpsnet imovelpro-backend 2>/dev/null; then
+                echo -e "${GREEN}   ✅ Backend conectado à vpsnet${NC}"
+            else
+                echo -e "${YELLOW}   ⚠️  Backend já estava conectado ou erro${NC}"
+            fi
+        fi
+        
+        # Remover arquivo temporário se foi criado
+        if [ "$COMPOSE_FILE" = "docker-compose.temp.yml" ]; then
+            rm -f docker-compose.temp.yml
+        fi
+        
+        echo -e "${GREEN}✅ Containers conectados à network vpsnet${NC}"
+    else
+        echo -e "${RED}❌ Erro ao iniciar containers${NC}"
+        if [ "$COMPOSE_FILE" = "docker-compose.temp.yml" ]; then
+            rm -f docker-compose.temp.yml
+        fi
+        exit 1
+    fi
 else
-    echo -e "${RED}❌ Erro ao iniciar containers${NC}"
-    echo -e "${YELLOW}   Verifique se a network vpsnet existe e é attachable${NC}"
-    echo -e "${YELLOW}   Execute: docker network inspect vpsnet${NC}"
-    exit 1
+    # Modo normal: iniciar com docker-compose.yml original
+    if $DOCKER_COMPOSE_CMD up -d; then
+        echo -e "${GREEN}✅ Containers iniciados com sucesso${NC}"
+        echo -e "${BLUE}ℹ️  Containers conectados automaticamente à network vpsnet via docker-compose.yml${NC}"
+    else
+        echo -e "${RED}❌ Erro ao iniciar containers${NC}"
+        echo -e "${YELLOW}   Verifique se a network vpsnet existe e é attachable${NC}"
+        echo -e "${YELLOW}   Execute: docker network inspect vpsnet${NC}"
+        exit 1
+    fi
 fi
 
 # Aguardar containers iniciarem

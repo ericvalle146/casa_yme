@@ -1,27 +1,31 @@
 # Correção Rápida na VPS
 
 ## Problema
-A network `vpsnet` não é attachable, impedindo que o docker-compose conecte os containers automaticamente.
+A network `vpsnet` não é attachable (criada pelo Docker Swarm), impedindo que o docker-compose conecte os containers automaticamente.
 
-## Solução Rápida (3 passos)
+## ✅ Solução Segura (NÃO para os stacks do Docker Swarm)
 
-### Passo 1: Atualizar código e corrigir network
+### Opção 1: Deploy Automático (Recomendado)
+
+O script `deploy.sh` foi atualizado para detectar automaticamente se a network não é attachable e conectar os containers manualmente. **NÃO é necessário parar os stacks do Docker Swarm!**
 
 Execute na VPS:
 
 ```bash
 cd ~/Prototipo_Mariana_Imobiliarias
 git pull origin main
+./deploy.sh
 ```
 
-### Passo 2: Executar script de correção
+O script vai:
+1. Detectar que a network vpsnet não é attachable (Docker Swarm)
+2. Criar containers sem conectar à vpsnet primeiro
+3. Conectar containers manualmente à vpsnet após iniciar
+4. **NÃO vai parar nenhum stack do Docker Swarm**
 
-```bash
-chmod +x update-and-fix-vps.sh
-./update-and-fix-vps.sh
-```
+### Opção 2: Manual (se necessário)
 
-OU execute manualmente:
+Execute manualmente:
 
 ```bash
 # 1. Parar containers
@@ -71,33 +75,47 @@ curl -I https://imob.locusup.shop
 curl -I https://apiapi.jyze.space/health
 ```
 
-## Se estiver usando Docker Swarm
+## ⚠️ IMPORTANTE: Docker Swarm
 
-Se você estiver usando Docker Swarm, você precisa parar o stack primeiro:
+**NÃO é necessário parar os stacks do Docker Swarm!**
+
+O script `deploy.sh` detecta automaticamente quando a network `vpsnet` foi criada pelo Docker Swarm e usa conexão manual dos containers. Isso significa que:
+
+✅ **Seus serviços continuam rodando** (chatwoot, evolution, n8n, traefik, etc.)  
+✅ **Nenhum downtime**  
+✅ **Conexão automática** dos containers à network vpsnet
+
+### Como funciona:
+
+1. O script detecta que `vpsnet` não é attachable (criada pelo Swarm)
+2. Usa `docker-compose.no-vpsnet.yml` para criar containers sem vpsnet
+3. Conecta containers manualmente à vpsnet após iniciar
+4. Traefik detecta os containers automaticamente via labels
+
+### Se quiser tornar a network attachable (opcional, requer downtime):
 
 ```bash
-# 1. Listar stacks
-docker stack ls
+# 1. Parar todos os stacks (ISSO VAI PARAR TODOS OS SERVIÇOS!)
+docker stack rm chatwoot evolution n8n traefik pgvector portainer postgres rabbitmq redis saborpaulista
 
-# 2. Parar stack do Traefik (ou outro que use vpsnet)
-docker stack rm <nome-do-stack>
+# 2. Aguardar remoção completa
+# ... aguarde alguns minutos ...
 
-# 3. Aguardar até que todos os serviços sejam removidos
-docker stack ps <nome-do-stack>
-
-# 4. Remover network
+# 3. Remover network
 docker network rm vpsnet
 
-# 5. Recriar network
+# 4. Recriar network como attachable
 docker network create --driver bridge --attachable vpsnet
 
-# 6. Reiniciar stack
-docker stack deploy -c <docker-compose-traefik.yml> <nome-do-stack>
+# 5. Reiniciar todos os stacks
+# ... reinicie todos os stacks manualmente ...
 
-# 7. Executar deploy do projeto
+# 6. Executar deploy do projeto
 cd ~/Prototipo_Mariana_Imobiliarias
 ./deploy.sh
 ```
+
+**⚠️ NÃO RECOMENDADO** - Isso vai causar downtime em todos os serviços!
 
 ## Solução Automatizada (Recomendada)
 
