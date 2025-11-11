@@ -124,21 +124,14 @@ Execute este comando único na VPS:
 ```bash
 cd ~/Prototipo_Mariana_Imobiliarias && \
 git pull origin main && \
-docker compose down && \
-(docker network rm vpsnet 2>/dev/null || true) && \
-docker network create --driver bridge --attachable vpsnet && \
-TRAEFIK=$(docker ps --format "{{.Names}}" | grep -i traefik | head -1) && \
-([ ! -z "$TRAEFIK" ] && docker network connect vpsnet $TRAEFIK || true) && \
 ./deploy.sh
 ```
 
 Este comando:
-1. Atualiza o código
-2. Para os containers
-3. Remove a network vpsnet (se existir)
-4. Recria a network como attachable
-5. Reconecta o Traefik (se existir)
-6. Executa o deploy
+1. Atualiza o código do GitHub
+2. Executa o deploy (que detecta automaticamente Docker Swarm)
+3. Conecta containers manualmente se necessário
+4. **NÃO para nenhum stack do Docker Swarm**
 
 ## Troubleshooting
 
