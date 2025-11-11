@@ -20,6 +20,9 @@ COPY src ./src
 COPY public ./public
 
 # Build da aplicação
+# Variável de ambiente para webhook (opcional, tem valor padrão no código)
+ARG VITE_WEBHOOK_URL
+ENV VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}
 RUN npm run build
 
 # Estágio de produção com Nginx

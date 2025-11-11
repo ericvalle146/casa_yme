@@ -30,8 +30,9 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
       return;
     }
 
-    // Webhook do N8N
-    const webhookUrl = "https://webhook.locusp.shop/webhook/mariana_imobiliaria";
+    // Webhook do N8N - pode ser configurado via variável de ambiente
+    const webhookUrl = (import.meta.env.VITE_WEBHOOK_URL as string | undefined) || 
+                       "https://webhook.locusp.shop/webhook/mariana_imobiliaria";
 
     try {
       setIsSubmitting(true);
