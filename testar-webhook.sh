@@ -10,7 +10,7 @@ BLUE="\033[0;34m"
 CYAN="\033[0;36m"
 NC="\033[0m"
 
-WEBHOOK_URL="https://webhook.locusp.shop/webhook/mariana_imobiliaria"
+WEBHOOK_URL="https://webhook.locusup.shop/webhook/mariana_imobiliaria"
 
 echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║           Teste de Conectividade do Webhook              ║${NC}"

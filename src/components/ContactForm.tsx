@@ -32,7 +32,7 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
 
     // Webhook do N8N - pode ser configurado via variável de ambiente
     const webhookUrl = (import.meta.env.VITE_WEBHOOK_URL as string | undefined) || 
-                       "https://webhook.locusp.shop/webhook/mariana_imobiliaria";
+                       "https://webhook.locusup.shop/webhook/mariana_imobiliaria";
 
     try {
       setIsSubmitting(true);
@@ -69,7 +69,7 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
       
       // Tratamento específico para erros de DNS
       if (err.message.includes("ERR_NAME_NOT_RESOLVED") || err.message.includes("Failed to fetch")) {
-        errorMessage = "Não foi possível conectar ao servidor. Verifique se o domínio webhook.locusp.shop está configurado corretamente.";
+        errorMessage = "Não foi possível conectar ao servidor. Verifique se o domínio webhook.locusup.shop está configurado corretamente.";
       } else if (err.message.includes("timeout") || err.name === "TimeoutError") {
         errorMessage = "Tempo de espera esgotado. Tente novamente.";
       } else if (err.message) {

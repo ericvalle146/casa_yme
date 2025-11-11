@@ -2,7 +2,7 @@
 
 ## ❌ Problema
 
-O erro `ERR_NAME_NOT_RESOLVED` significa que o DNS não consegue resolver o domínio `webhook.locusp.shop`.
+O erro `ERR_NAME_NOT_RESOLVED` significa que o DNS não consegue resolver o domínio `webhook.locusup.shop`.
 
 ## 🔍 Verificações
 
@@ -23,9 +23,8 @@ curl -I https://webhook.locusp.shop/webhook/mariana_imobiliaria
 
 ### 2. Possíveis problemas
 
-- **Domínio não existe**: `webhook.locusp.shop` pode não estar configurado
+- **Domínio não existe**: `webhook.locusup.shop` pode não estar configurado
 - **DNS não configurado**: O domínio pode não ter DNS apontando
-- **Domínio errado**: Pode ser `webhook.locusup.shop` (com "u") ao invés de `webhook.locusp.shop`
 
 ### 3. Soluções
 
