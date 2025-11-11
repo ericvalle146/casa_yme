@@ -104,12 +104,14 @@ docker build \
 echo -e "${GREEN}✅ Imagens construídas${NC}"
 echo ""
 
-# Remover containers antigos (se existirem)
-echo -e "${BLUE}4) Removendo containers antigos (se existirem)...${NC}"
+# Parar containers do docker-compose (se existirem) - SEM AFETAR OUTROS SERVIÇOS
+echo -e "${BLUE}4) Parando containers do docker-compose (se existirem)...${NC}"
+echo -e "${BLUE}   ⚠️  Isso NÃO afeta outros serviços ou stacks${NC}"
+docker compose -f docker-compose.standalone.yml down 2>/dev/null || true
 docker stop imovelpro-frontend imovelpro-backend 2>/dev/null || true
 docker rm imovelpro-frontend imovelpro-backend 2>/dev/null || true
 
-# Remover network antiga (se existir)
+# Remover network antiga do docker-compose (se existir e não estiver em uso)
 docker network rm prototipo_mariana_imobiliarias_imovelpro-network 2>/dev/null || true
 
 echo -e "${GREEN}✅ Containers antigos removidos${NC}"
