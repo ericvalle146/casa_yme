@@ -213,17 +213,40 @@ sudo ln -sf /etc/nginx/sites-available/imovelpro /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 
 # Testar configuração do Nginx
-if sudo nginx -t 2>/dev/null; then
+echo -e "${GREEN}🔍 Testando configuração do Nginx...${NC}"
+if sudo nginx -t; then
     echo -e "${GREEN}✅ Configuração do Nginx válida${NC}"
 else
-    echo -e "${YELLOW}⚠️  Configuração do Nginx tem problemas, mas continuando...${NC}"
+    echo -e "${RED}❌ Erro na configuração do Nginx. Verifique os erros acima.${NC}"
+    sudo nginx -t
+    exit 1
 fi
 
-# Iniciar/Recarregar Nginx
+# Parar Nginx se estiver rodando (para evitar conflitos)
+echo -e "${YELLOW}🛑 Parando Nginx se estiver rodando...${NC}"
+sudo systemctl stop nginx 2>/dev/null || true
+sleep 2
+
+# Iniciar Nginx
 echo -e "${GREEN}🔄 Iniciando Nginx...${NC}"
-sudo systemctl start nginx || true
-sudo systemctl reload nginx || true
-sudo systemctl enable nginx
+if sudo systemctl start nginx; then
+    echo -e "${GREEN}✅ Nginx iniciado com sucesso${NC}"
+    sudo systemctl enable nginx
+else
+    echo -e "${RED}❌ Erro ao iniciar Nginx${NC}"
+    sudo systemctl status nginx
+    exit 1
+fi
+
+# Verificar se Nginx está rodando
+sleep 3
+if sudo systemctl is-active --quiet nginx; then
+    echo -e "${GREEN}✅ Nginx está rodando${NC}"
+else
+    echo -e "${RED}❌ Nginx não está rodando. Verificando logs...${NC}"
+    sudo journalctl -u nginx --no-pager -n 20
+    exit 1
+fi
 
 # Verificar e instalar Certbot se necessário
 if ! command_exists certbot; then
@@ -231,28 +254,48 @@ if ! command_exists certbot; then
     install_certbot
 fi
 
+# Testar se os domínios estão acessíveis via HTTP primeiro
+echo -e "${GREEN}🧪 Testando acesso HTTP aos domínios...${NC}"
+sleep 2
+
+if curl -s -o /dev/null -w "%{http_code}" http://localhost -H "Host: imob.locusup.shop" | grep -q "200\|301\|302"; then
+    echo -e "${GREEN}✅ Frontend acessível via HTTP${NC}"
+else
+    echo -e "${YELLOW}⚠️  Frontend pode não estar acessível ainda${NC}"
+fi
+
 # Tentar obter certificados SSL automaticamente (não bloqueante)
-echo -e "${GREEN}🔒 Configurando SSL/HTTPS...${NC}"
+echo -e "${GREEN}🔒 Tentando configurar SSL/HTTPS...${NC}"
 echo -e "${YELLOW}⚠️  Isso pode pedir confirmação de email e aceitar termos...${NC}"
 
+# Verificar se os domínios apontam para este servidor
+echo -e "${BLUE}ℹ️  Verificando se os domínios apontam para este servidor...${NC}"
+SERVER_IP=$(curl -s ifconfig.me || curl -s ipinfo.io/ip || hostname -I | awk '{print $1}')
+echo -e "${BLUE}   IP do servidor: ${SERVER_IP}${NC}"
+echo -e "${BLUE}   Certifique-se de que os domínios apontam para este IP${NC}"
+
 # Obter certificado para frontend (não bloqueante)
-if sudo certbot --nginx -d imob.locusup.shop --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect 2>/dev/null; then
+echo -e "${YELLOW}   Tentando obter certificado para imob.locusup.shop...${NC}"
+if sudo certbot --nginx -d imob.locusup.shop --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect --quiet 2>&1; then
     echo -e "${GREEN}✅ Certificado SSL para imob.locusup.shop configurado${NC}"
+    sudo systemctl reload nginx
 else
     echo -e "${YELLOW}⚠️  Não foi possível obter certificado SSL para imob.locusup.shop automaticamente${NC}"
+    echo -e "${YELLOW}   Possíveis causas:${NC}"
+    echo -e "${YELLOW}   - Domínio não aponta para este servidor${NC}"
+    echo -e "${YELLOW}   - Porta 80 não está acessível externamente${NC}"
     echo -e "${YELLOW}   Execute manualmente: sudo certbot --nginx -d imob.locusup.shop${NC}"
 fi
 
 # Obter certificado para backend (não bloqueante)
-if sudo certbot --nginx -d apiapi.jyze.space --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect 2>/dev/null; then
+echo -e "${YELLOW}   Tentando obter certificado para apiapi.jyze.space...${NC}"
+if sudo certbot --nginx -d apiapi.jyze.space --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect --quiet 2>&1; then
     echo -e "${GREEN}✅ Certificado SSL para apiapi.jyze.space configurado${NC}"
+    sudo systemctl reload nginx
 else
     echo -e "${YELLOW}⚠️  Não foi possível obter certificado SSL para apiapi.jyze.space automaticamente${NC}"
     echo -e "${YELLOW}   Execute manualmente: sudo certbot --nginx -d apiapi.jyze.space${NC}"
 fi
-
-# Recarregar Nginx após SSL
-sudo systemctl reload nginx || true
 
 # Verificar logs
 echo -e "${GREEN}📋 Últimas linhas dos logs:${NC}"
