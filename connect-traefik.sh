@@ -27,23 +27,66 @@ fi
 
 echo -e "${GREEN}✅ Traefik encontrado: ${TRAEFIK_CONTAINER}${NC}"
 
-# Conectar à network
-if docker network connect imovelpro-network "$TRAEFIK_CONTAINER" 2>/dev/null; then
-    echo -e "${GREEN}✅ Traefik conectado à network imovelpro-network${NC}"
-    
-    # Reiniciar Traefik para detectar novos containers
-    echo -e "${BLUE}   Reiniciando Traefik...${NC}"
-    docker restart "$TRAEFIK_CONTAINER" 2>/dev/null || true
-    
-    echo -e "${GREEN}✅ Traefik reiniciado${NC}"
-    echo ""
-    echo -e "${BLUE}📋 Aguarde alguns segundos para o Traefik detectar os containers${NC}"
-    echo -e "${BLUE}   Teste os domínios:${NC}"
-    echo -e "   - https://imob.locusup.shop"
-    echo -e "   - https://apiapi.jyze.space/health"
-else
-    echo -e "${YELLOW}⚠️  Traefik já estava conectado ou erro${NC}"
-    echo -e "${BLUE}   Verifique manualmente:${NC}"
-    echo -e "   ${YELLOW}docker network inspect imovelpro-network${NC}"
+# Verificar se já está na network
+NETWORK_NAME="prototipo_mariana_imobiliarias_imovelpro-network"
+if [ -z "$NETWORK_NAME" ]; then
+    NETWORK_NAME="imovelpro-network"
 fi
+
+TRAEFIK_NETWORKS=$(docker inspect "$TRAEFIK_CONTAINER" --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}} {{end}}' 2>/dev/null || echo "")
+
+if echo "$TRAEFIK_NETWORKS" | grep -q "$NETWORK_NAME\|imovelpro"; then
+    echo -e "${GREEN}✅ Traefik já está na network${NC}"
+    echo -e "${BLUE}   Reiniciando Traefik para detectar novos containers...${NC}"
+    docker restart "$TRAEFIK_CONTAINER" 2>/dev/null || true
+    sleep 5
+    echo -e "${GREEN}✅ Traefik reiniciado${NC}"
+else
+    # Tentar conectar
+    echo -e "${BLUE}   Conectando Traefik à network...${NC}"
+    if docker network connect "$NETWORK_NAME" "$TRAEFIK_CONTAINER" 2>&1; then
+        echo -e "${GREEN}✅ Traefik conectado à network${NC}"
+        echo -e "${BLUE}   Reiniciando Traefik...${NC}"
+        docker restart "$TRAEFIK_CONTAINER" 2>/dev/null || true
+        sleep 5
+        echo -e "${GREEN}✅ Traefik reiniciado${NC}"
+    else
+        # Tentar com nome alternativo
+        if docker network connect imovelpro-network "$TRAEFIK_CONTAINER" 2>&1; then
+            echo -e "${GREEN}✅ Traefik conectado à network${NC}"
+            docker restart "$TRAEFIK_CONTAINER" 2>/dev/null || true
+            sleep 5
+        else
+            echo -e "${YELLOW}⚠️  Erro ao conectar Traefik${NC}"
+            echo -e "${BLUE}   Networks disponíveis:${NC}"
+            docker network ls | grep imovelpro || echo "   Nenhuma network imovelpro encontrada"
+            echo -e "${BLUE}   Verifique manualmente:${NC}"
+            echo -e "   ${YELLOW}docker network inspect $NETWORK_NAME${NC}"
+            echo -e "   ${YELLOW}docker network connect $NETWORK_NAME $TRAEFIK_CONTAINER${NC}"
+        fi
+    fi
+fi
+
+# Verificar containers na network
+echo ""
+echo -e "${BLUE}📋 Verificando containers na network...${NC}"
+CONTAINERS_IN_NETWORK=$(docker network inspect "$NETWORK_NAME" --format '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+if [ ! -z "$CONTAINERS_IN_NETWORK" ]; then
+    echo -e "${GREEN}✅ Containers na network:${NC}"
+    echo "$CONTAINERS_IN_NETWORK" | tr ' ' '\n' | grep -v '^$' | while read container; do
+        echo -e "   - ${container}"
+    done
+else
+    echo -e "${YELLOW}⚠️  Nenhum container encontrado na network${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}✅ Processo concluído!${NC}"
+echo ""
+echo -e "${BLUE}🌐 Aguarde alguns segundos e teste os domínios:${NC}"
+echo -e "   - https://imob.locusup.shop"
+echo -e "   - https://apiapi.jyze.space/health"
+echo ""
+echo -e "${BLUE}💡 Para verificar rotas do Traefik:${NC}"
+echo -e "   ${YELLOW}curl -s http://localhost:8080/api/http/routers | jq '.[] | select(.name | contains(\"imovelpro\"))'${NC}"
 

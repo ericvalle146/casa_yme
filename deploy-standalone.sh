@@ -73,15 +73,22 @@ fi
 
 # Conectar Traefik (se existir)
 echo -e "${BLUE}8) Conectando Traefik (se existir)...${NC}"
-if [ -f "./connect-traefik.sh" ]; then
-    ./connect-traefik.sh
-else
-    TRAEFIK_CONTAINER=$(docker ps --format "{{.Names}}" | grep -i traefik | head -1 || echo "")
-    if [ ! -z "$TRAEFIK_CONTAINER" ]; then
-        docker network connect imovelpro-network "$TRAEFIK_CONTAINER" 2>/dev/null && \
-        docker restart "$TRAEFIK_CONTAINER" 2>/dev/null || true
-        echo -e "${GREEN}✅ Traefik conectado${NC}"
+TRAEFIK_CONTAINER=$(docker ps --format "{{.Names}}" | grep -i traefik | head -1 || echo "")
+NETWORK_NAME=$(docker compose -f docker-compose.standalone.yml config --networks 2>/dev/null | grep -A 2 "imovelpro-network" | grep "name:" | awk '{print $2}' | tr -d '"' || echo "prototipo_mariana_imobiliarias_imovelpro-network")
+
+if [ ! -z "$TRAEFIK_CONTAINER" ]; then
+    if [ -f "./connect-traefik.sh" ]; then
+        ./connect-traefik.sh
+    else
+        # Conectar diretamente
+        if docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+            docker network connect "$NETWORK_NAME" "$TRAEFIK_CONTAINER" 2>/dev/null || true
+            docker restart "$TRAEFIK_CONTAINER" 2>/dev/null || true
+            echo -e "${GREEN}✅ Traefik conectado e reiniciado${NC}"
+        fi
     fi
+else
+    echo -e "${YELLOW}⚠️  Traefik não encontrado${NC}"
 fi
 
 # Obter IP do host
