@@ -6,8 +6,10 @@ services:
       args:
         VITE_API_BASE_URL: https://apiapi.jyze.space
     container_name: imovelpro-frontend
+    # Porta 80 será exposta via Nginx proxy reverso na VPS
+    # Se Nginx já estiver na porta 80, mude temporariamente para "8080:80"
     ports:
-      - "80:80"
+      - "8080:80"
     restart: unless-stopped
     networks:
       - imovelpro-network
