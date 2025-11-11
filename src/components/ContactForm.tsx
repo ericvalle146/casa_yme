@@ -43,7 +43,18 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Prevent default navigation and stop other handlers from running
     e.preventDefault();
+    e.stopPropagation();
+    // In case any native listeners are present, try to stop them as well
+    try {
+      const ne = (e as unknown as { nativeEvent?: Event }).nativeEvent;
+      if (ne && typeof (ne as Event).stopImmediatePropagation === "function") {
+        (ne as Event).stopImmediatePropagation();
+      }
+    } catch (err) {
+      // ignore
+    }
 
     if (isSubmitting) {
       return;
@@ -131,6 +142,7 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
         } as FormPayload;
       }
 
+      // Always send to webhook only. Do not open external links or change location.
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
@@ -147,7 +159,8 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
 
       toast({ title: "Solicitação recebida", description: "Agradecemos. Entraremos em contato em breve." });
 
-      // Não abrir WhatsApp automaticamente — apenas enviar para o webhook
+      // Explicitly avoid opening WhatsApp or navigating away
+      // (no window.open, no location.assign)
 
       setFormData({ name: "", email: "", phone: "", message: defaultMessage });
     } catch (error) {
