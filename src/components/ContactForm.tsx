@@ -147,15 +147,7 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
 
       toast({ title: "Solicitação recebida", description: "Agradecemos. Entraremos em contato em breve." });
 
-      // Abrir WhatsApp se for o método escolhido
-      if (contactMethod === "whatsapp") {
-        const cleaned = formData.phone.replace(/\D/g, "");
-        if (cleaned.length >= 8) {
-          const text = encodeURIComponent(formData.message || "Olá, tenho interesse.");
-          const waUrl = `https://wa.me/${cleaned}?text=${text}`;
-          window.open(waUrl, "_blank");
-        }
-      }
+      // Não abrir WhatsApp automaticamente — apenas enviar para o webhook
 
       setFormData({ name: "", email: "", phone: "", message: defaultMessage });
     } catch (error) {

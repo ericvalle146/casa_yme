@@ -161,3 +161,4 @@ Para mais informações, consulte:
 - Execute `./diagnose-traefik.sh` para diagnóstico automático
 
 
+

@@ -100,3 +100,4 @@ Quando o Traefik está configurado para Let's Encrypt:
 Veja instruções em: `SOLUCAO-RAPIDA-SSL.md`
 
 
+

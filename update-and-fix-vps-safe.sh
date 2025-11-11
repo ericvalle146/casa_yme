@@ -234,3 +234,4 @@ echo -e "   3. Executar diagnóstico: ./diagnose-traefik.sh"
 echo -e "   4. Testar domínios: curl -I https://imob.locusup.shop"
 
 
+
