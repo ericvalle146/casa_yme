@@ -183,156 +183,37 @@ if echo "$CONTAINER_STATUS" | grep -qE "(Up|running)" || [ -z "$CONTAINER_STATUS
     fi
 fi
 
-# Verificar e instalar Nginx se necessário
-if ! command_exists nginx; then
-    echo -e "${YELLOW}⚠️  Nginx não encontrado. Instalando...${NC}"
-    install_nginx
-fi
-
-# Criar diretórios do Nginx se não existirem
-sudo mkdir -p /etc/nginx/sites-available
-sudo mkdir -p /etc/nginx/sites-enabled
-
-# Configurar Nginx automaticamente
-echo -e "${GREEN}🔧 Configurando Nginx...${NC}"
-
-# Parar Nginx temporariamente se estiver rodando na porta 80
-if sudo systemctl is-active --quiet nginx; then
-    echo -e "${YELLOW}🛑 Parando Nginx temporariamente...${NC}"
-    sudo systemctl stop nginx || true
-fi
-
-# Copiar configuração do Nginx
-sudo cp nginx-proxy.conf /etc/nginx/sites-available/imovelpro
-
-# Criar link simbólico
-sudo rm -f /etc/nginx/sites-enabled/imovelpro
-sudo ln -sf /etc/nginx/sites-available/imovelpro /etc/nginx/sites-enabled/
-
-# Remover configuração padrão
-sudo rm -f /etc/nginx/sites-enabled/default
-
-# Testar configuração do Nginx
-echo -e "${GREEN}🔍 Testando configuração do Nginx...${NC}"
-if sudo nginx -t; then
-    echo -e "${GREEN}✅ Configuração do Nginx válida${NC}"
-else
-    echo -e "${RED}❌ Erro na configuração do Nginx. Verifique os erros acima.${NC}"
-    sudo nginx -t
-    exit 1
-fi
-
-# Verificar o que está usando a porta 80
-echo -e "${YELLOW}🔍 Verificando o que está usando a porta 80...${NC}"
-PORT_80_PID=$(sudo lsof -ti:80 2>/dev/null || sudo fuser 80/tcp 2>/dev/null | awk '{print $1}' || echo "")
-if [ ! -z "$PORT_80_PID" ]; then
-    echo -e "${YELLOW}⚠️  Porta 80 está em uso pelo processo: ${PORT_80_PID}${NC}"
-    PORT_80_NAME=$(ps -p $PORT_80_PID -o comm= 2>/dev/null || echo "desconhecido")
-    echo -e "${YELLOW}   Processo: ${PORT_80_NAME}${NC}"
+# Verificar se Traefik está rodando (usar recursos existentes)
+echo -e "${GREEN}🔍 Verificando Traefik...${NC}"
+TRAEFIK_RUNNING=$(docker ps --format "{{.Names}}" | grep -i traefik || echo "")
+if [ ! -z "$TRAEFIK_RUNNING" ]; then
+    echo -e "${GREEN}✅ Traefik detectado: ${TRAEFIK_RUNNING}${NC}"
+    echo -e "${BLUE}ℹ️  Usando Traefik existente para proxy reverso${NC}"
+    echo -e "${BLUE}ℹ️  Os containers serão configurados com labels do Traefik${NC}"
     
-    # Se for Nginx, parar
-    if echo "$PORT_80_NAME" | grep -q "nginx"; then
-        echo -e "${YELLOW}🛑 Parando Nginx...${NC}"
-        sudo systemctl stop nginx 2>/dev/null || true
-        sudo pkill -9 nginx 2>/dev/null || true
-    # Se for Docker, verificar qual container
-    elif echo "$PORT_80_NAME" | grep -q "docker"; then
-        echo -e "${YELLOW}⚠️  Docker está usando a porta 80${NC}"
-        echo -e "${YELLOW}   Verificando containers...${NC}"
-        $DOCKER_COMPOSE_CMD ps | grep ":80->" || true
-    else
-        echo -e "${YELLOW}⚠️  Outro processo está usando a porta 80${NC}"
-        echo -e "${YELLOW}   Parando processo...${NC}"
-        sudo kill -9 $PORT_80_PID 2>/dev/null || true
+    # Verificar se os containers precisam estar na mesma network do Traefik
+    TRAEFIK_NETWORK=$(docker inspect $TRAEFIK_RUNNING --format '{{range $net, $conf := .NetworkSettings.Networks}}{{$net}}{{end}}' | head -1)
+    if [ ! -z "$TRAEFIK_NETWORK" ]; then
+        echo -e "${BLUE}ℹ️  Traefik está na network: ${TRAEFIK_NETWORK}${NC}"
+        echo -e "${YELLOW}⚠️  Certifique-se de que os containers estão na mesma network do Traefik${NC}"
     fi
-    sleep 3
 else
-    echo -e "${GREEN}✅ Porta 80 está livre${NC}"
+    echo -e "${YELLOW}⚠️  Traefik não encontrado. Verificando Nginx...${NC}"
+    
+    # Verificar se Nginx está rodando
+    if sudo systemctl is-active --quiet nginx 2>/dev/null; then
+        echo -e "${GREEN}✅ Nginx detectado e rodando${NC}"
+        echo -e "${BLUE}ℹ️  Nginx já está configurado e funcionando${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Nenhum proxy reverso detectado. Containers estarão acessíveis apenas nas portas 8080 e 4000${NC}"
+    fi
 fi
-
-# Parar Nginx se estiver rodando (para evitar conflitos)
-echo -e "${YELLOW}🛑 Parando Nginx se estiver rodando...${NC}"
-sudo systemctl stop nginx 2>/dev/null || true
-sudo pkill -9 nginx 2>/dev/null || true
-sleep 2
-
-# Verificar novamente se a porta 80 está livre
-PORT_80_CHECK=$(sudo lsof -ti:80 2>/dev/null || echo "")
-if [ ! -z "$PORT_80_CHECK" ]; then
-    echo -e "${RED}❌ Porta 80 ainda está em uso. Liberando forçadamente...${NC}"
-    sudo fuser -k 80/tcp 2>/dev/null || true
-    sleep 2
-fi
-
-# Iniciar Nginx
-echo -e "${GREEN}🔄 Iniciando Nginx...${NC}"
-if sudo systemctl start nginx; then
-    echo -e "${GREEN}✅ Nginx iniciado com sucesso${NC}"
-    sudo systemctl enable nginx
-else
-    echo -e "${RED}❌ Erro ao iniciar Nginx${NC}"
-    sudo systemctl status nginx
-    exit 1
-fi
-
-# Verificar se Nginx está rodando
-sleep 3
-if sudo systemctl is-active --quiet nginx; then
-    echo -e "${GREEN}✅ Nginx está rodando${NC}"
-else
-    echo -e "${RED}❌ Nginx não está rodando. Verificando logs...${NC}"
-    sudo journalctl -u nginx --no-pager -n 20
-    exit 1
-fi
-
-# Verificar e instalar Certbot se necessário
-if ! command_exists certbot; then
-    echo -e "${YELLOW}⚠️  Certbot não encontrado. Instalando...${NC}"
-    install_certbot
-fi
-
-# Testar se os domínios estão acessíveis via HTTP primeiro
-echo -e "${GREEN}🧪 Testando acesso HTTP aos domínios...${NC}"
-sleep 2
-
-if curl -s -o /dev/null -w "%{http_code}" http://localhost -H "Host: imob.locusup.shop" | grep -q "200\|301\|302"; then
-    echo -e "${GREEN}✅ Frontend acessível via HTTP${NC}"
-else
-    echo -e "${YELLOW}⚠️  Frontend pode não estar acessível ainda${NC}"
-fi
-
-# Tentar obter certificados SSL automaticamente (não bloqueante)
-echo -e "${GREEN}🔒 Tentando configurar SSL/HTTPS...${NC}"
-echo -e "${YELLOW}⚠️  Isso pode pedir confirmação de email e aceitar termos...${NC}"
 
 # Verificar se os domínios apontam para este servidor
-echo -e "${BLUE}ℹ️  Verificando se os domínios apontam para este servidor...${NC}"
+echo -e "${BLUE}ℹ️  Verificando configuração de domínios...${NC}"
 SERVER_IP=$(curl -s ifconfig.me || curl -s ipinfo.io/ip || hostname -I | awk '{print $1}')
 echo -e "${BLUE}   IP do servidor: ${SERVER_IP}${NC}"
 echo -e "${BLUE}   Certifique-se de que os domínios apontam para este IP${NC}"
-
-# Obter certificado para frontend (não bloqueante)
-echo -e "${YELLOW}   Tentando obter certificado para imob.locusup.shop...${NC}"
-if sudo certbot --nginx -d imob.locusup.shop --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect --quiet 2>&1; then
-    echo -e "${GREEN}✅ Certificado SSL para imob.locusup.shop configurado${NC}"
-    sudo systemctl reload nginx
-else
-    echo -e "${YELLOW}⚠️  Não foi possível obter certificado SSL para imob.locusup.shop automaticamente${NC}"
-    echo -e "${YELLOW}   Possíveis causas:${NC}"
-    echo -e "${YELLOW}   - Domínio não aponta para este servidor${NC}"
-    echo -e "${YELLOW}   - Porta 80 não está acessível externamente${NC}"
-    echo -e "${YELLOW}   Execute manualmente: sudo certbot --nginx -d imob.locusup.shop${NC}"
-fi
-
-# Obter certificado para backend (não bloqueante)
-echo -e "${YELLOW}   Tentando obter certificado para apiapi.jyze.space...${NC}"
-if sudo certbot --nginx -d apiapi.jyze.space --non-interactive --agree-tos --email admin@imob.locusup.shop --redirect --quiet 2>&1; then
-    echo -e "${GREEN}✅ Certificado SSL para apiapi.jyze.space configurado${NC}"
-    sudo systemctl reload nginx
-else
-    echo -e "${YELLOW}⚠️  Não foi possível obter certificado SSL para apiapi.jyze.space automaticamente${NC}"
-    echo -e "${YELLOW}   Execute manualmente: sudo certbot --nginx -d apiapi.jyze.space${NC}"
-fi
 
 # Verificar logs
 echo -e "${GREEN}📋 Últimas linhas dos logs:${NC}"
