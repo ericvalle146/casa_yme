@@ -146,8 +146,15 @@ echo ""
 # Build da imagem do frontend
 echo -e "${BLUE}[5] Construindo imagem do frontend...${NC}"
 
+# Permitir configurar webhook via variável de ambiente ou argumento
+WEBHOOK_URL="${VITE_WEBHOOK_URL:-https://webhook.locusp.shop/webhook/mariana_imobiliaria}"
+
+echo -e "${BLUE}   Webhook URL: ${YELLOW}$WEBHOOK_URL${NC}"
+echo -e "${YELLOW}   (Para mudar, use: export VITE_WEBHOOK_URL=https://seu-webhook.com)${NC}"
+
 docker build \
     --pull \
+    --build-arg VITE_WEBHOOK_URL="$WEBHOOK_URL" \
     -t "imovelpro-frontend:latest" \
     -f "$PROJECT_ROOT/Dockerfile.frontend" \
     "$PROJECT_ROOT" || {
