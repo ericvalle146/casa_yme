@@ -21,15 +21,15 @@ echo ""
 
 # Teste 1: DNS Resolution
 echo -e "${BLUE}[1] Testando resolução DNS...${NC}"
-if nslookup webhook.locusp.shop >/dev/null 2>&1; then
+if nslookup webhook.locusup.shop >/dev/null 2>&1; then
     echo -e "${GREEN}✅ DNS resolve corretamente${NC}"
-    DNS_RESULT=$(nslookup webhook.locusp.shop 2>&1 | grep -A 2 "Name:" | tail -1 | awk '{print $2}' || echo "")
+    DNS_RESULT=$(nslookup webhook.locusup.shop 2>&1 | grep -A 2 "Name:" | tail -1 | awk '{print $2}' || echo "")
     if [ -n "$DNS_RESULT" ]; then
         echo -e "${BLUE}   IP: ${YELLOW}$DNS_RESULT${NC}"
     fi
 else
     echo -e "${RED}❌ DNS NÃO resolve${NC}"
-    echo -e "${YELLOW}   O domínio webhook.locusp.shop não está configurado no DNS${NC}"
+    echo -e "${YELLOW}   O domínio webhook.locusup.shop não está configurado no DNS${NC}"
     echo -e "${YELLOW}   Verifique se o domínio está apontando para o servidor correto${NC}"
 fi
 echo ""
@@ -78,12 +78,12 @@ echo -e "${CYAN}║                      RESUMO                              ║
 echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-if nslookup webhook.locusp.shop >/dev/null 2>&1; then
+if nslookup webhook.locusup.shop >/dev/null 2>&1; then
     echo -e "${GREEN}✅ DNS está configurado${NC}"
 else
     echo -e "${RED}❌ DNS NÃO está configurado${NC}"
     echo -e "${YELLOW}   Ação necessária:${NC}"
-    echo -e "${YELLOW}   1. Verifique se o domínio webhook.locusp.shop existe${NC}"
+    echo -e "${YELLOW}   1. Verifique se o domínio webhook.locusup.shop existe${NC}"
     echo -e "${YELLOW}   2. Configure o DNS para apontar para o servidor do N8N${NC}"
     echo -e "${YELLOW}   3. Aguarde a propagação do DNS (pode levar algumas horas)${NC}"
 fi

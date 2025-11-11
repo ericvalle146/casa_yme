@@ -12,13 +12,13 @@ Teste no terminal:
 
 ```bash
 # Verificar DNS
-nslookup webhook.locusp.shop
+nslookup webhook.locusup.shop
 
 # Ou
-dig webhook.locusp.shop
+dig webhook.locusup.shop
 
 # Testar conexão
-curl -I https://webhook.locusp.shop/webhook/mariana_imobiliaria
+curl -I https://webhook.locusup.shop/webhook/mariana_imobiliaria
 ```
 
 ### 2. Possíveis problemas
