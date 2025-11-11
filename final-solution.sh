@@ -89,3 +89,4 @@ echo -e "${BLUE}   Aguarde 30 segundos e teste os domínios${NC}"
 
 
 
+

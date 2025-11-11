@@ -236,10 +236,23 @@ const ContactForm = ({ defaultMessage = "" }: ContactFormProps) => {
                 <>
                   <label className="sr-only">Número para contato (WhatsApp)</label>
                   <Input
-                    type="tel"
+                    // use text + inputMode to avoid some browsers turning the value into a clickable tel link
+                    type="text"
+                    inputMode="tel"
+                    pattern="[0-9+ ]*"
+                    autoComplete="tel"
                     placeholder="Número WhatsApp"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onKeyDown={(e) => {
+                      // Prevent Enter from triggering unexpected navigation in some environments
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        // submit via form handler instead
+                        const form = (e.target as HTMLElement).closest("form");
+                        if (form) form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+                      }
+                    }}
                     required
                     className="h-12"
                     aria-label="Número de WhatsApp"
