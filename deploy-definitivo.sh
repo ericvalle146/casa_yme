@@ -12,7 +12,7 @@ NC="\033[0m"
 
 # Configurações
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
-DOMAIN_FRONTEND="imob.locusup.shop"
+DOMAIN_FRONTEND="casayme.com.br"
 STACK_NAME="imovelpro"
 
 echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
@@ -87,13 +87,6 @@ fi
 echo -e "${GREEN}✅ Certresolver detectado: ${YELLOW}$CERT_RESOLVER${NC}"
 echo ""
 
-# Atualizar docker-stack.yml com certresolver correto
-echo -e "${BLUE}[3] Atualizando configuração com certresolver correto...${NC}"
-sed -i "s/certresolver=letsencrypt/certresolver=$CERT_RESOLVER/g" "$PROJECT_ROOT/deploy/docker-stack.yml"
-sed -i "s/certresolver=letsencryptresolver/certresolver=$CERT_RESOLVER/g" "$PROJECT_ROOT/deploy/docker-stack.yml"
-echo -e "${GREEN}✅ Configuração atualizada${NC}"
-echo ""
-
 # Build da imagem do frontend
 echo -e "${BLUE}[4] Construindo imagem do frontend...${NC}"
 
@@ -101,13 +94,13 @@ TIMESTAMP_TAG=$(date +%Y%m%d-%H%M%S)
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "nogit")
 IMAGE_TAG="${TIMESTAMP_TAG}-${GIT_SHA}"
 
-FRONTEND_IMAGE="imovelpro-frontend:${IMAGE_TAG}"
+FRONTEND_IMAGE="casayme-frontend:${IMAGE_TAG}"
 
 echo -e "${BLUE}   Building frontend...${NC}"
 docker build \
     --pull \
-    -t "$FRONTEND_IMAGE" \
-    -t "imovelpro-frontend:latest" \
+    -t "casayme-frontend:${IMAGE_TAG}" \
+    -t "casayme-frontend:latest" \
     -f "$PROJECT_ROOT/Dockerfile.frontend" \
     "$PROJECT_ROOT" || {
     echo -e "${RED}❌ Erro ao construir frontend${NC}"
@@ -128,7 +121,9 @@ echo ""
 echo -e "${BLUE}[6] Fazendo deploy da stack...${NC}"
 
 export TRAEFIK_NETWORK
-export FRONTEND_IMAGE="imovelpro-frontend:latest"
+export FRONTEND_IMAGE="casayme-frontend:latest"
+export DOMAIN_FRONTEND
+export CERT_RESOLVER
 
 docker stack deploy -c "$PROJECT_ROOT/deploy/docker-stack.yml" "$STACK_NAME" || {
     echo -e "${RED}❌ Erro ao fazer deploy${NC}"

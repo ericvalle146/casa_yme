@@ -12,7 +12,7 @@ NC="\033[0m"
 
 # Configurações
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
-DOMAIN_FRONTEND="imob.locusup.shop"
+DOMAIN_FRONTEND="casayme.com.br"
 STACK_NAME="imovelpro"
 
 echo -e "${CYAN}╔════════════════════════════════════════════════════════════╗${NC}"
@@ -99,7 +99,7 @@ networks:
 
 services:
   frontend:
-    image: ${FRONTEND_IMAGE:-prototipo_mariana_imobiliarias-frontend:latest}
+    image: ${FRONTEND_IMAGE:-casayme-frontend:latest}
     networks:
       - traefik
     deploy:
@@ -118,13 +118,13 @@ services:
         order: stop-first
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.imovelpro-frontend.rule=Host(`imob.locusup.shop`)"
+        - "traefik.http.routers.imovelpro-frontend.rule=Host(`casayme.com.br`)"
         - "traefik.http.routers.imovelpro-frontend.entrypoints=websecure"
         - "traefik.http.routers.imovelpro-frontend.tls.certresolver=${CERT_RESOLVER:-letsencryptresolver}"
         - "traefik.http.routers.imovelpro-frontend.tls=true"
         - "traefik.http.services.imovelpro-frontend.loadbalancer.server.port=80"
         - "traefik.docker.network=${TRAEFIK_NETWORK:-vpsnet}"
-        - "traefik.http.routers.imovelpro-frontend-http.rule=Host(`imob.locusup.shop`)"
+        - "traefik.http.routers.imovelpro-frontend-http.rule=Host(`casayme.com.br`)"
         - "traefik.http.routers.imovelpro-frontend-http.entrypoints=web"
         - "traefik.http.routers.imovelpro-frontend-http.middlewares=redirect-to-https-frontend"
         - "traefik.http.middlewares.redirect-to-https-frontend.redirectscheme.scheme=https"

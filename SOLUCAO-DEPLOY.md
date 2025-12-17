@@ -68,7 +68,7 @@ docker compose ps
 
 # Testar endpoints
 curl https://apiapi.jyze.space/health
-curl -I https://imob.locusup.shop
+curl -I https://casayme.com.br
 ```
 
 ## 🔧 Resolvendo o Problema de SSL
@@ -180,7 +180,7 @@ docker compose up -d --build
 - [ ] Deploy executado com `./deploy-completo.sh`
 - [ ] Serviços rodando (`docker compose ps`)
 - [ ] Certificados SSL válidos (verificado com `./verificar-traefik.sh`)
-- [ ] Frontend acessível em `https://imob.locusup.shop`
+- [ ] Frontend acessível em `https://casayme.com.br`
 - [ ] Backend acessível em `https://apiapi.jyze.space/health`
 
 ## 🎉 Pronto!

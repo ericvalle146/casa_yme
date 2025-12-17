@@ -111,7 +111,7 @@ docker network connect vpsnet <nome-do-container-traefik>
 docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}'
 
 # Verificar se os domínios estão funcionando
-curl -I https://imob.locusup.shop
+curl -I https://casayme.com.br
 curl -I https://apiapi.jyze.space/health
 ```
 
@@ -161,7 +161,7 @@ curl http://localhost:4000/health
 
 4. **Acesso via domínio:**
 ```bash
-curl -I https://imob.locusup.shop
+curl -I https://casayme.com.br
 curl -I https://apiapi.jyze.space/health
 ```
 
@@ -208,6 +208,9 @@ Se você continuar tendo problemas após seguir este guia:
 2. Verifique os logs: `docker compose logs -f`
 3. Verifique a configuração do Traefik
 4. Consulte o `TROUBLESHOOTING.md` para mais informações
+
+
+
 
 
 

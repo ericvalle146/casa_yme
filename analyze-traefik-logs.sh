@@ -114,3 +114,6 @@ echo -e "${BLUE}      ${YELLOW}echo | openssl s_client -connect apiapi.jyze.spac
 
 
 
+
+
+

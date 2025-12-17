@@ -86,7 +86,7 @@ app.post("/api/contact", async (req, res) => {
     return res.status(200).json({ message: "Lead enviado com sucesso." });
   } catch (error) {
     logger.error({ err: error }, "Erro inesperado ao chamar webhook");
-    return res.status(500).json({ error: "Erro interno ao processar pedido." });
+    return res.status(500).json({ error: "Erro interno ao processar solicitação." });
   }
 });
 

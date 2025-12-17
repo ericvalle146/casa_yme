@@ -118,7 +118,7 @@ check_cert() {
 }
 
 check_cert "apiapi.jyze.space"
-check_cert "imob.locusup.shop"
+check_cert "casayme.com.br"
 
 echo ""
 

@@ -231,7 +231,10 @@ echo -e "${BLUE}📝 Próximos passos:${NC}"
 echo -e "   1. Verificar containers: docker compose ps"
 echo -e "   2. Verificar network: docker network inspect vpsnet"
 echo -e "   3. Executar diagnóstico: ./diagnose-traefik.sh"
-echo -e "   4. Testar domínios: curl -I https://imob.locusup.shop"
+echo -e "   4. Testar domínios: curl -I https://casayme.com.br"
+
+
+
 
 
 

@@ -39,7 +39,7 @@ Configuração do Nginx dentro do container do frontend:
 
 ### 6. **nginx-proxy.conf**
 Configuração do Nginx na VPS (proxy reverso):
-- Frontend: `imob.locusup.shop` → Container porta 80
+- Frontend: `casayme.com.br` → Container porta 80
 - Backend: `apiapi.jyze.space` → Container porta 4000
 - SSL/HTTPS configurável via Let's Encrypt
 
@@ -67,7 +67,7 @@ Documentação principal com seção de deploy atualizada.
 
 #### Backend (Runtime)
 - `PORT=4000`
-- `CORS_ORIGINS=https://imob.locusup.shop`
+- `CORS_ORIGINS=https://casayme.com.br`
 - `N8N_WEBHOOK_URL=<sua-url>` (OBRIGATÓRIO - configure em server/.env)
 
 ### Arquivos .env.example Atualizados
@@ -99,14 +99,14 @@ Documentação principal com seção de deploy atualizada.
    ```bash
    sudo cp nginx-proxy.conf /etc/nginx/sites-available/imovelpro
    sudo ln -s /etc/nginx/sites-available/imovelpro /etc/nginx/sites-enabled/
-   sudo certbot --nginx -d imob.locusup.shop
+   sudo certbot --nginx -d casayme.com.br
    sudo certbot --nginx -d apiapi.jyze.space
    ```
 
 ## 📝 Notas Importantes
 
 - O frontend está configurado para usar `https://apiapi.jyze.space` como URL da API
-- O backend aceita requisições apenas de `https://imob.locusup.shop`
+- O backend aceita requisições apenas de `https://casayme.com.br`
 - Certifique-se de configurar o `N8N_WEBHOOK_URL` no arquivo `server/.env`
 - Os certificados SSL são renovados automaticamente pelo Certbot
 - Os containers reiniciam automaticamente em caso de falha

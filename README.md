@@ -115,7 +115,7 @@ Execute `npm run check:media` para validar se todas as URLs de imagens configura
 O projeto inclui arquivos Docker para deploy completo na VPS.
 
 #### Domínios Configurados
-- **Frontend**: `imob.locusup.shop`
+- **Frontend**: `casayme.com.br`
 - **Backend**: `apiapi.jyze.space`
 
 #### Passos Rápidos
@@ -140,7 +140,7 @@ O projeto inclui arquivos Docker para deploy completo na VPS.
    sudo ln -s /etc/nginx/sites-available/imovelpro /etc/nginx/sites-enabled/
    
    # Obter certificados SSL
-   sudo certbot --nginx -d imob.locusup.shop
+   sudo certbot --nginx -d casayme.com.br
    sudo certbot --nginx -d apiapi.jyze.space
    ```
 

@@ -12,7 +12,7 @@ NC="\033[0m"
 
 # configurações
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DOMAIN_FRONTEND="imob.locusup.shop"
+DOMAIN_FRONTEND="casayme.com.br"
 STACK_NAME="imovelpro"
 TRAEFIK_NETWORK_DEFAULT="vpsnet"
 
@@ -87,7 +87,7 @@ networks:
 
 services:
   frontend:
-    image: ${FRONTEND_IMAGE:-imovelpro-frontend:latest}
+    image: ${FRONTEND_IMAGE:-casayme-frontend:latest}
     networks:
       - traefik
     deploy:

@@ -182,7 +182,7 @@ docker logs <nome-do-container-traefik> 2>&1 | grep -i cert
 
 4. Verificar se os domínios apontam para o IP do servidor:
 ```bash
-dig +short imob.locusup.shop
+dig +short casayme.com.br
 dig +short apiapi.jyze.space
 ```
 
@@ -243,7 +243,7 @@ curl http://localhost:4000/health
 
 4. **Acesso via domínio:**
 ```bash
-curl -I https://imob.locusup.shop
+curl -I https://casayme.com.br
 curl -I https://apiapi.jyze.space/health
 ```
 
@@ -313,6 +313,9 @@ Se você continuar tendo problemas após seguir este guia, verifique:
 5. Configuração do Traefik
 
 Para mais informações, consulte a documentação do Traefik: https://doc.traefik.io/traefik/
+
+
+
 
 
 

@@ -25,7 +25,7 @@ nano .env
 
 **Configure obrigatoriamente:**
 - `N8N_WEBHOOK_URL`: URL do seu webhook do N8N
-- `CORS_ORIGINS`: https://imob.locusup.shop (já configurado)
+- `CORS_ORIGINS`: https://casayme.com.br (já configurado)
 
 ### 3. Execute o deploy
 
@@ -40,7 +40,7 @@ Siga as instruções no arquivo `INSTALL.md` para configurar o Nginx como proxy 
 
 ## Domínios Configurados
 
-- **Frontend**: `imob.locusup.shop` → Container na porta 80
+- **Frontend**: `casayme.com.br` → Container na porta 80
 - **Backend**: `apiapi.jyze.space` → Container na porta 4000
 
 ## Variáveis de Ambiente
@@ -50,7 +50,7 @@ Siga as instruções no arquivo `INSTALL.md` para configurar o Nginx como proxy 
 
 ### Backend (Runtime)
 - `PORT=4000`
-- `CORS_ORIGINS=https://imob.locusup.shop`
+- `CORS_ORIGINS=https://casayme.com.br`
 - `N8N_WEBHOOK_URL=<sua-url-do-webhook>` (OBRIGATÓRIO)
 
 ## Comandos Úteis

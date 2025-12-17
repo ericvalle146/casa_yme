@@ -12,7 +12,7 @@ NC="\033[0m"
 
 # Configurações
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
-DOMAIN_FRONTEND="imob.locusup.shop"
+DOMAIN_FRONTEND="casayme.com.br"
 DOMAIN_BACKEND="apiapi.jyze.space"
 EMAIL_LETSENCRYPT="${LETSENCRYPT_EMAIL:-admin@${DOMAIN_FRONTEND}}"
 

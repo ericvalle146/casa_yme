@@ -129,7 +129,7 @@ docker compose ps
 docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}'
 
 # Testar domínios
-curl -I https://imob.locusup.shop
+curl -I https://casayme.com.br
 curl -I https://apiapi.jyze.space/health
 ```
 
@@ -159,6 +159,9 @@ Para mais informações, consulte:
 - `FIX-DEPLOY.md` - Guia de correção passo a passo
 - `TROUBLESHOOTING.md` - Guia completo de troubleshooting
 - Execute `./diagnose-traefik.sh` para diagnóstico automático
+
+
+
 
 
 

@@ -23,14 +23,14 @@ services:
       start_period: 40s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.imovelpro-frontend.rule=Host(`imob.locusup.shop`)"
+      - "traefik.http.routers.imovelpro-frontend.rule=Host(`casayme.com.br`)"
       - "traefik.http.routers.imovelpro-frontend.entrypoints=websecure"
       - "traefik.http.routers.imovelpro-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.imovelpro-frontend.tls=true"
       - "traefik.http.services.imovelpro-frontend.loadbalancer.server.port=80"
       - "traefik.docker.network=vpsnet"
       # HTTP to HTTPS redirect
-      - "traefik.http.routers.imovelpro-frontend-http.rule=Host(`imob.locusup.shop`)"
+      - "traefik.http.routers.imovelpro-frontend-http.rule=Host(`casayme.com.br`)"
       - "traefik.http.routers.imovelpro-frontend-http.entrypoints=web"
       - "traefik.http.routers.imovelpro-frontend-http.middlewares=redirect-to-https-frontend"
       - "traefik.http.middlewares.redirect-to-https-frontend.redirectscheme.scheme=https"
@@ -50,7 +50,7 @@ services:
       - imovelpro-network
     environment:
       - PORT=4000
-      - CORS_ORIGINS=https://imob.locusup.shop
+      - CORS_ORIGINS=https://casayme.com.br
       - NODE_ENV=production
     healthcheck:
       test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"]
@@ -76,6 +76,9 @@ services:
 networks:
   imovelpro-network:
     driver: bridge
+
+
+
 
 
 

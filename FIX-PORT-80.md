@@ -85,7 +85,7 @@ sudo systemctl start nginx
 sudo systemctl reload nginx
 
 # 5. Configurar SSL
-sudo certbot --nginx -d imob.locusup.shop
+sudo certbot --nginx -d casayme.com.br
 sudo certbot --nginx -d apiapi.jyze.space
 ```
 

@@ -37,7 +37,7 @@ export TRAEFIK_NETWORK=vpsnet
 export FRONTEND_IMAGE=prototipo_mariana_imobiliarias-frontend:latest
 export BACKEND_IMAGE=prototipo_mariana_imobiliarias-backend:latest
 export PORT=4000
-export CORS_ORIGINS=https://imob.locusup.shop
+export CORS_ORIGINS=https://casayme.com.br
 export NODE_ENV=production
 export N8N_WEBHOOK_URL=https://seu-servidor-n8n.com/webhook/endpoint
 
@@ -53,7 +53,7 @@ O script `deploy-swarm.sh` carrega automaticamente as variáveis do arquivo `ser
 
 ```bash
 PORT=4000
-CORS_ORIGINS=https://imob.locusup.shop
+CORS_ORIGINS=https://casayme.com.br
 NODE_ENV=production
 N8N_WEBHOOK_URL=https://seu-servidor-n8n.com/webhook/endpoint
 ```
@@ -100,7 +100,7 @@ docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}'
 curl -s http://localhost:8080/api/http/routers | jq '.[] | select(.name | contains("imovelpro"))'
 
 # Testar domínios
-curl -I https://imob.locusup.shop
+curl -I https://casayme.com.br
 curl -I https://apiapi.jyze.space/health
 ```
 
@@ -243,6 +243,9 @@ docker network rm prototipo_mariana_imobiliarias_imovelpro-network 2>/dev/null |
 - `deploy-swarm.sh` - Script de deploy automático
 - `../docker-compose.yml` - Configuração antiga (não funciona com Swarm)
 - `../PROBLEMA-COMPLETO.md` - Documentação completa do problema
+
+
+
 
 
 

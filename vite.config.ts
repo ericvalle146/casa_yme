@@ -12,6 +12,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    allowedHosts: [
+      '9674f83fa88b.ngrok-free.app',
+      'bcaffadfd241.ngrok-free.app',
+      'f275b8338b25.ngrok-free.app',
+    ],
     proxy: {
       '/api': {
         target: process.env.VITE_PROXY_TARGET || 'http://localhost:4000',
@@ -24,4 +29,3 @@ export default defineConfig({
     sourcemap: false,
   },
 })
-

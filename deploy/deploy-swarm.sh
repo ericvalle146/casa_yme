@@ -16,6 +16,7 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 STACK_NAME="imovelpro"
+DOMAIN_FRONTEND="${DOMAIN_FRONTEND:-casayme.com.br}"
 
 cd "$PROJECT_ROOT"
 
@@ -75,37 +76,49 @@ if ! docker network inspect "$TRAEFIK_NETWORK" >/dev/null 2>&1; then
     exit 1
 fi
 
-# Build das imagens
-echo -e "${BLUE}3) Build das imagens...${NC}"
+# Detectar certresolver do Traefik
+echo -e "${BLUE}3) Detectando certresolver do Traefik...${NC}"
+CERT_RESOLVER=${CERT_RESOLVER:-}
+if [ -z "$CERT_RESOLVER" ]; then
+    TRAEFIK_CONTAINER=$(docker ps --filter "name=traefik" --format "{{.Names}}" | head -1 || true)
+    if [ -n "$TRAEFIK_CONTAINER" ]; then
+        TRAEFIK_SERVICE=$(echo "$TRAEFIK_CONTAINER" | cut -d'.' -f1-2)
+        TRAEFIK_ARGS=$(docker service inspect "$TRAEFIK_SERVICE" --format '{{range .Spec.TaskTemplate.ContainerSpec.Args}}{{.}}{{"\n"}}{{end}}' 2>/dev/null || echo "")
+        CERT_RESOLVER=$(echo "$TRAEFIK_ARGS" | grep -oP 'certificatesresolvers\.\K[^.]+' | head -1 || echo "")
+    fi
+fi
 
-# Tag das imagens
+if [ -z "$CERT_RESOLVER" ]; then
+    CERT_RESOLVER="letsencryptresolver"
+fi
+
+echo -e "${GREEN}✅ Usando certresolver: ${YELLOW}$CERT_RESOLVER${NC}"
+echo ""
+
+# Build da imagem do frontend
+echo -e "${BLUE}4) Build do frontend...${NC}"
+
+# Tag da imagem
 TIMESTAMP_TAG=$(date +%Y%m%d-%H%M%S)
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "nogit")
 IMAGE_TAG="${TIMESTAMP_TAG}-${GIT_SHA}"
 
-FRONTEND_IMAGE="${FRONTEND_IMAGE:-prototipo_mariana_imobiliarias-frontend:${IMAGE_TAG}}"
-BACKEND_IMAGE="${BACKEND_IMAGE:-prototipo_mariana_imobiliarias-backend:${IMAGE_TAG}}"
+FRONTEND_IMAGE="${FRONTEND_IMAGE:-casayme-frontend:${IMAGE_TAG}}"
+API_BASE_URL="${VITE_API_BASE_URL:-https://apiapi.jyze.space}"
 
-echo -e "${BLUE}   Building frontend...${NC}"
+echo -e "${BLUE}   Building frontend (API: ${API_BASE_URL})...${NC}"
 docker build \
     --pull \
     -t "$FRONTEND_IMAGE" \
     -f "$PROJECT_ROOT/Dockerfile.frontend" \
-    --build-arg VITE_API_BASE_URL=https://apiapi.jyze.space \
+    --build-arg VITE_API_BASE_URL="$API_BASE_URL" \
     "$PROJECT_ROOT"
 
-echo -e "${BLUE}   Building backend...${NC}"
-docker build \
-    --pull \
-    -t "$BACKEND_IMAGE" \
-    -f "$PROJECT_ROOT/server/Dockerfile" \
-    "$PROJECT_ROOT/server"
-
-echo -e "${GREEN}✅ Imagens construídas${NC}"
+echo -e "${GREEN}✅ Imagem do frontend construída${NC}"
 echo ""
 
 # Parar containers do docker-compose (se existirem) - SEM AFETAR OUTROS SERVIÇOS
-echo -e "${BLUE}4) Parando containers do docker-compose (se existirem)...${NC}"
+echo -e "${BLUE}5) Parando containers do docker-compose (se existirem)...${NC}"
 echo -e "${BLUE}   ⚠️  Isso NÃO afeta outros serviços ou stacks${NC}"
 docker compose -f docker-compose.standalone.yml down 2>/dev/null || true
 docker stop imovelpro-frontend imovelpro-backend 2>/dev/null || true
@@ -117,43 +130,14 @@ docker network rm prototipo_mariana_imobiliarias_imovelpro-network 2>/dev/null |
 echo -e "${GREEN}✅ Containers antigos removidos${NC}"
 echo ""
 
-# Verificar arquivo .env do backend
-if [ ! -f "$PROJECT_ROOT/server/.env" ]; then
-    echo -e "${YELLOW}⚠️  Arquivo server/.env não encontrado${NC}"
-    if [ -f "$PROJECT_ROOT/server/env.example" ]; then
-        echo -e "${BLUE}   Criando a partir de env.example...${NC}"
-        cp "$PROJECT_ROOT/server/env.example" "$PROJECT_ROOT/server/.env"
-        echo -e "${YELLOW}   IMPORTANTE: Configure o N8N_WEBHOOK_URL no arquivo server/.env${NC}"
-    else
-        echo -e "${RED}❌ Arquivo server/env.example não encontrado${NC}"
-        exit 1
-    fi
-fi
-
-# Carregar variáveis de ambiente do backend
-if [ -f "$PROJECT_ROOT/server/.env" ]; then
-    echo -e "${BLUE}5) Carregando variáveis de ambiente do backend...${NC}"
-    # Carregar variáveis do .env e exportar
-    set -a
-    source "$PROJECT_ROOT/server/.env"
-    set +a
-    echo -e "${GREEN}✅ Variáveis de ambiente carregadas${NC}"
-    echo ""
-fi
-
 # Deploy da stack
 echo -e "${BLUE}6) Deploy/atualização da stack '$STACK_NAME'...${NC}"
 
-# Exportar variáveis necessárias para o docker-stack.yml
+# Exportar variáveis para o docker-stack.yml
 export TRAEFIK_NETWORK
 export FRONTEND_IMAGE
-export BACKEND_IMAGE
-
-# Exportar variáveis de ambiente do backend (se carregadas do .env)
-export PORT=${PORT:-4000}
-export CORS_ORIGINS=${CORS_ORIGINS:-https://imob.locusup.shop}
-export NODE_ENV=${NODE_ENV:-production}
-export N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-}
+export DOMAIN_FRONTEND
+export CERT_RESOLVER
 
 # Usar docker stack deploy
 docker stack deploy \
@@ -173,26 +157,18 @@ docker service ls | grep "$STACK_NAME" || true
 
 echo ""
 
-# Verificar se os serviços estão rodando
+# Verificar se o serviço está rodando
 FRONTEND_SERVICE="${STACK_NAME}_frontend"
-BACKEND_SERVICE="${STACK_NAME}_backend"
 
-echo -e "${BLUE}9) Verificando health dos serviços...${NC}"
+echo -e "${BLUE}9) Verificando health do frontend...${NC}"
 sleep 5
 
 FRONTEND_STATUS=$(docker service ps "$FRONTEND_SERVICE" --format '{{.CurrentState}}' --no-trunc 2>/dev/null | head -1 || echo "")
-BACKEND_STATUS=$(docker service ps "$BACKEND_SERVICE" --format '{{.CurrentState}}' --no-trunc 2>/dev/null | head -1 || echo "")
 
 if echo "$FRONTEND_STATUS" | grep -q "Running"; then
     echo -e "${GREEN}✅ Frontend está rodando${NC}"
 else
     echo -e "${YELLOW}⚠️  Frontend: $FRONTEND_STATUS${NC}"
-fi
-
-if echo "$BACKEND_STATUS" | grep -q "Running"; then
-    echo -e "${GREEN}✅ Backend está rodando${NC}"
-else
-    echo -e "${YELLOW}⚠️  Backend: $BACKEND_STATUS${NC}"
 fi
 
 echo ""
@@ -216,16 +192,13 @@ echo -e "${BLUE}📋 Resumo:${NC}"
 echo -e "   - Stack: ${YELLOW}$STACK_NAME${NC}"
 echo -e "   - Network: ${YELLOW}$TRAEFIK_NETWORK${NC}"
 echo -e "   - Frontend: ${YELLOW}$FRONTEND_IMAGE${NC}"
-echo -e "   - Backend: ${YELLOW}$BACKEND_IMAGE${NC}"
 echo ""
 echo -e "${BLUE}🌐 Domínios:${NC}"
-echo -e "   - Frontend: https://imob.locusup.shop"
-echo -e "   - Backend:  https://apiapi.jyze.space"
+echo -e "   - Frontend: https://${DOMAIN_FRONTEND}"
 echo ""
 echo -e "${BLUE}💡 Comandos úteis:${NC}"
 echo -e "   - Ver serviços: ${YELLOW}docker service ls | grep $STACK_NAME${NC}"
 echo -e "   - Ver logs frontend: ${YELLOW}docker service logs -f ${FRONTEND_SERVICE}${NC}"
-echo -e "   - Ver logs backend: ${YELLOW}docker service logs -f ${BACKEND_SERVICE}${NC}"
 echo -e "   - Ver status: ${YELLOW}docker service ps $STACK_NAME${NC}"
 echo -e "   - Remover stack: ${YELLOW}docker stack rm $STACK_NAME${NC}"
 echo ""

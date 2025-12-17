@@ -4,7 +4,7 @@
 
 Os serviços estão rodando, mas os certificados SSL ainda estão auto-assinados:
 - ❌ `apiapi.jyze.space` - Certificado auto-assinado
-- ❌ `imob.locusup.shop` - Certificado auto-assinado
+- ❌ `casayme.com.br` - Certificado auto-assinado
 
 ## 🔍 Diagnóstico
 
@@ -111,7 +111,7 @@ Após alguns minutos, verifique:
 echo | openssl s_client -connect apiapi.jyze.space:443 -servername apiapi.jyze.space 2>&1 | grep "CN ="
 
 # Verificar certificado do frontend
-echo | openssl s_client -connect imob.locusup.shop:443 -servername imob.locusup.shop 2>&1 | grep "CN ="
+echo | openssl s_client -connect casayme.com.br:443 -servername casayme.com.br 2>&1 | grep "CN ="
 ```
 
 **Se aparecer o domínio ou "Let's Encrypt" ao invés de "TRAEFIK DEFAULT CERT", está funcionando!**
@@ -126,7 +126,7 @@ echo | openssl s_client -connect imob.locusup.shop:443 -servername imob.locusup.
 2. **Verifique se os domínios estão apontando corretamente:**
    ```bash
    nslookup apiapi.jyze.space
-   nslookup imob.locusup.shop
+   nslookup casayme.com.br
    ```
 
 3. **Verifique os logs do Traefik para erros:**

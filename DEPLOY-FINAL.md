@@ -5,7 +5,7 @@
 1. **Docker e Docker Compose** instalados
 2. **Traefik** rodando na VPS (com Let's Encrypt configurado)
 3. **Domínios** configurados:
-   - Frontend: `imob.locusup.shop`
+   - Frontend: `casayme.com.br`
    - Backend: `apiapi.jyze.space`
 4. **DNS** apontando para o IP da VPS (`147.93.5.243`)
 
@@ -22,7 +22,7 @@ nano .env
 **Configure obrigatoriamente:**
 ```env
 PORT=4000
-CORS_ORIGINS=https://imob.locusup.shop
+CORS_ORIGINS=https://casayme.com.br
 N8N_WEBHOOK_URL=https://seu-servidor-n8n.com/webhook/endpoint
 ```
 
@@ -100,7 +100,7 @@ docker service logs -f imovelpro_backend
 echo | openssl s_client -connect apiapi.jyze.space:443 -servername apiapi.jyze.space 2>&1 | grep "CN ="
 
 # Verificar certificado do frontend
-echo | openssl s_client -connect imob.locusup.shop:443 -servername imob.locusup.shop 2>&1 | grep "CN ="
+echo | openssl s_client -connect casayme.com.br:443 -servername casayme.com.br 2>&1 | grep "CN ="
 ```
 
 **Se aparecer "TRAEFIK DEFAULT CERT":**
@@ -115,7 +115,7 @@ echo | openssl s_client -connect imob.locusup.shop:443 -servername imob.locusup.
 curl https://apiapi.jyze.space/health
 
 # Frontend
-curl -I https://imob.locusup.shop
+curl -I https://casayme.com.br
 ```
 
 ## ⚠️ Problemas Comuns
@@ -232,6 +232,6 @@ Se encontrar problemas:
 - [ ] Deploy executado com sucesso
 - [ ] Serviços rodando e saudáveis
 - [ ] Certificados SSL válidos (não auto-assinados)
-- [ ] Frontend acessível em `https://imob.locusup.shop`
+- [ ] Frontend acessível em `https://casayme.com.br`
 - [ ] Backend acessível em `https://apiapi.jyze.space/health`
 
