@@ -54,7 +54,7 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: https://${DOMAIN_BACKEND}/api
+        VITE_API_BASE_URL: https://${DOMAIN_BACKEND}
         VITE_WEBHOOK_URL: ${VITE_WEBHOOK_URL}
     container_name: frontend_casayme
     restart: unless-stopped

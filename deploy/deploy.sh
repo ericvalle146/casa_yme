@@ -144,7 +144,7 @@ fi
 
 echo -e "${YELLOW}   Frontend: casayme-frontend:latest${NC}"
 docker build -t casayme-frontend:latest \
-    --build-arg VITE_API_BASE_URL="https://${DOMAIN_BACKEND}/api" \
+    --build-arg VITE_API_BASE_URL="https://${DOMAIN_BACKEND}" \
     --build-arg VITE_WEBHOOK_URL="${VITE_WEBHOOK_URL}" \
     ../frontend
 
