@@ -49,24 +49,21 @@ cp .env.example .env
 
 # Gerar segredo JWT aleatório e seguro
 echo -e "${BLUE}🔐 Gerando chave de segurança JWT (ACCESS_TOKEN_SECRET)...${NC}"
-NEW_SECRET=$(LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*()_+=-[]{}|;:,.<>?' < /dev/urandom | head -c 64)
+
+# Método 1: Tentar com openssl (mais confiável)
+if command -v openssl &> /dev/null; then
+    NEW_SECRET=$(openssl rand -base64 48 | tr -d '/+=' | head -c 64)
+else
+    # Método 2: Fallback para tr + urandom (simplificado)
+    NEW_SECRET=$(tr -dc 'A-Za-z0-9' < /dev/urandom | dd bs=64 count=1 2>/dev/null)
+fi
 
 if [[ -z "$NEW_SECRET" ]]; then
     echo -e "${RED}❌ Falha ao gerar chave de segurança.${NC}"
     echo -e "${YELLOW}ATENÇÃO: Você precisará editar o .env manualmente para trocar ACCESS_TOKEN_SECRET${NC}"
 else
-    # Escapar caracteres especiais para sed
-    ESCAPED_SECRET=$(printf '%s\n' "$NEW_SECRET" | sed 's/[&/\]/\\&/g')
-
-    # Substituir no arquivo .env
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        sed -i '' "s/MUDE_ISSO_PARA_UMA_STRING_BEM_SEGURA_E_ALEATORIA/$ESCAPED_SECRET/" .env
-    else
-        # Linux
-        sed -i "s/MUDE_ISSO_PARA_UMA_STRING_BEM_SEGURA_E_ALEATORIA/$ESCAPED_SECRET/" .env
-    fi
-
+    # Substituir no arquivo .env (direto, sem escape especial pois usamos apenas base64)
+    sed -i "s/MUDE_ISSO_PARA_UMA_STRING_BEM_SEGURA_E_ALEATORIA/$NEW_SECRET/" .env
     echo -e "${GREEN}✅ Chave de segurança gerada e configurada${NC}"
 fi
 
