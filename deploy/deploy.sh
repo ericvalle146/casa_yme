@@ -135,7 +135,7 @@ sleep 10
 # Build das imagens localmente
 echo -e "\n${BLUE}🔨 Fazendo build das imagens Docker...${NC}"
 echo -e "${YELLOW}   Backend: casayme-backend:latest${NC}"
-docker compose build backend --tag casayme-backend:latest
+docker build -t casayme-backend:latest ../backend
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Falha ao fazer build do backend${NC}"
@@ -143,7 +143,10 @@ if [ $? -ne 0 ]; then
 fi
 
 echo -e "${YELLOW}   Frontend: casayme-frontend:latest${NC}"
-docker compose build frontend --tag casayme-frontend:latest --build-arg VITE_API_BASE_URL="https://${DOMAIN_BACKEND}/api" --build-arg VITE_WEBHOOK_URL="${VITE_WEBHOOK_URL}"
+docker build -t casayme-frontend:latest \
+    --build-arg VITE_API_BASE_URL="https://${DOMAIN_BACKEND}/api" \
+    --build-arg VITE_WEBHOOK_URL="${VITE_WEBHOOK_URL}" \
+    ../frontend
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Falha ao fazer build do frontend${NC}"
