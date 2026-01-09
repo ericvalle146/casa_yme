@@ -71,9 +71,13 @@ echo -e "${GREEN}✅ Arquivo .env criado com sucesso${NC}"
 
 # --- 3. Carregar e validar variáveis ---
 echo -e "\n${CYAN}[3/5]${NC} Validando configurações..."
+# Temporariamente desabilitar verificação de variáveis não definidas
+# (a senha do banco tem caracteres especiais que podem confundir bash)
+set +u
 set -a
 source .env
 set +a
+set -u
 
 # Validar variáveis críticas
 if [[ -z "${DOMAIN_FRONTEND:-}" ]]; then
