@@ -42,11 +42,11 @@ services:
         - "traefik.enable=true"
         - "traefik.docker.network=traefik_imobiliaria"
         # HTTP to HTTPS redirect
-        - "traefik.http.routers.casayme-backend-http.rule=Host(\`${DOMAIN_BACKEND}\`)"
+        - "traefik.http.routers.casayme-backend-http.rule=Host(`${DOMAIN_BACKEND}`)"
         - "traefik.http.routers.casayme-backend-http.entrypoints=web"
         - "traefik.http.routers.casayme-backend-http.middlewares=casayme-https-redirect"
         # HTTPS router
-        - "traefik.http.routers.casayme-backend.rule=Host(\`${DOMAIN_BACKEND}\`)"
+        - "traefik.http.routers.casayme-backend.rule=Host(`${DOMAIN_BACKEND}`)"
         - "traefik.http.routers.casayme-backend.entrypoints=websecure"
         - "traefik.http.routers.casayme-backend.tls=true"
         - "traefik.http.routers.casayme-backend.tls.certresolver=letsencrypt"
@@ -73,11 +73,11 @@ services:
         - "traefik.enable=true"
         - "traefik.docker.network=traefik_imobiliaria"
         # HTTP to HTTPS redirect
-        - "traefik.http.routers.casayme-frontend-http.rule=Host(\`${DOMAIN_FRONTEND}\`)"
+        - "traefik.http.routers.casayme-frontend-http.rule=Host(`${DOMAIN_FRONTEND}`)"
         - "traefik.http.routers.casayme-frontend-http.entrypoints=web"
         - "traefik.http.routers.casayme-frontend-http.middlewares=casayme-https-redirect"
         # HTTPS router
-        - "traefik.http.routers.casayme-frontend.rule=Host(\`${DOMAIN_FRONTEND}\`)"
+        - "traefik.http.routers.casayme-frontend.rule=Host(`${DOMAIN_FRONTEND}`)"
         - "traefik.http.routers.casayme-frontend.entrypoints=websecure"
         - "traefik.http.routers.casayme-frontend.tls=true"
         - "traefik.http.routers.casayme-frontend.tls.certresolver=letsencrypt"
