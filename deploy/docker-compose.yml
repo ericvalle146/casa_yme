@@ -1,30 +1,6 @@
 version: '3.8'
 
 services:
-  traefik:
-    image: traefik:v2.10
-    container_name: traefik
-    restart: unless-stopped
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080" # Traefik Dashboard
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_certs:/letsencrypt
-    networks:
-      - web
-
   backend:
     build:
       context: ../backend
@@ -47,7 +23,7 @@ services:
       - REFRESH_TOKEN_TTL_DAYS=${REFRESH_TOKEN_TTL_DAYS}
       - PASSWORD_SALT_ROUNDS=${PASSWORD_SALT_ROUNDS}
     networks:
-      - web
+      - traefik_imobiliaria
     volumes:
       - backend_uploads:/app/uploads
     healthcheck:
@@ -58,19 +34,20 @@ services:
       start_period: 40s
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik_imobiliaria"
       # HTTP to HTTPS redirect
-      - "traefik.http.routers.backend-http.rule=Host(`${DOMAIN_BACKEND}`)"
-      - "traefik.http.routers.backend-http.entrypoints=web"
-      - "traefik.http.routers.backend-http.middlewares=https-redirect"
+      - "traefik.http.routers.casayme-backend-http.rule=Host(`${DOMAIN_BACKEND}`)"
+      - "traefik.http.routers.casayme-backend-http.entrypoints=web"
+      - "traefik.http.routers.casayme-backend-http.middlewares=casayme-https-redirect"
       # HTTPS router
-      - "traefik.http.routers.backend-secure.rule=Host(`${DOMAIN_BACKEND}`)"
-      - "traefik.http.routers.backend-secure.entrypoints=websecure"
-      - "traefik.http.routers.backend-secure.tls=true"
-      - "traefik.http.routers.backend-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.services.backend.loadbalancer.server.port=4000"
+      - "traefik.http.routers.casayme-backend.rule=Host(`${DOMAIN_BACKEND}`)"
+      - "traefik.http.routers.casayme-backend.entrypoints=websecure"
+      - "traefik.http.routers.casayme-backend.tls=true"
+      - "traefik.http.routers.casayme-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.casayme-backend.loadbalancer.server.port=4000"
       # Middleware de redirect HTTPS
-      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+      - "traefik.http.middlewares.casayme-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.casayme-https-redirect.redirectscheme.permanent=true"
 
   frontend:
     build:
@@ -82,27 +59,27 @@ services:
     container_name: frontend_casayme
     restart: unless-stopped
     networks:
-      - web
+      - traefik_imobiliaria
     depends_on:
       backend:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik_imobiliaria"
       # HTTP to HTTPS redirect
-      - "traefik.http.routers.frontend-http.rule=Host(`${DOMAIN_FRONTEND}`)"
-      - "traefik.http.routers.frontend-http.entrypoints=web"
-      - "traefik.http.routers.frontend-http.middlewares=https-redirect"
+      - "traefik.http.routers.casayme-frontend-http.rule=Host(`${DOMAIN_FRONTEND}`)"
+      - "traefik.http.routers.casayme-frontend-http.entrypoints=web"
+      - "traefik.http.routers.casayme-frontend-http.middlewares=casayme-https-redirect"
       # HTTPS router
-      - "traefik.http.routers.frontend-secure.rule=Host(`${DOMAIN_FRONTEND}`)"
-      - "traefik.http.routers.frontend-secure.entrypoints=websecure"
-      - "traefik.http.routers.frontend-secure.tls=true"
-      - "traefik.http.routers.frontend-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.casayme-frontend.rule=Host(`${DOMAIN_FRONTEND}`)"
+      - "traefik.http.routers.casayme-frontend.entrypoints=websecure"
+      - "traefik.http.routers.casayme-frontend.tls=true"
+      - "traefik.http.routers.casayme-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.casayme-frontend.loadbalancer.server.port=80"
 
 networks:
-  web:
-    driver: bridge
+  traefik_imobiliaria:
+    external: true
 
 volumes:
-  traefik_certs:
   backend_uploads:
