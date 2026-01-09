@@ -122,11 +122,39 @@ fi
 echo -e "\n${CYAN}[5/5]${NC} Iniciando deploy dos containers..."
 echo -e "${BLUE}⏳ Fazendo build e deploy... (isso pode levar alguns minutos)${NC}\n"
 
-# Parar e remover containers antigos
+# Parar e remover containers/serviços antigos
+echo -e "${YELLOW}📦 Removendo containers antigos (docker compose)...${NC}"
 docker compose down --remove-orphans 2>/dev/null || true
 
-# Build e subir containers
-docker compose up -d --build --remove-orphans
+echo -e "${YELLOW}📦 Removendo stack antigo (docker swarm)...${NC}"
+docker stack rm casayme 2>/dev/null || true
+
+echo -e "${YELLOW}⏳ Aguardando remoção completa (10 segundos)...${NC}"
+sleep 10
+
+# Build das imagens localmente
+echo -e "\n${BLUE}🔨 Fazendo build das imagens Docker...${NC}"
+echo -e "${YELLOW}   Backend: casayme-backend:latest${NC}"
+docker compose build backend --tag casayme-backend:latest
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Falha ao fazer build do backend${NC}"
+    exit 1
+fi
+
+echo -e "${YELLOW}   Frontend: casayme-frontend:latest${NC}"
+docker compose build frontend --tag casayme-frontend:latest --build-arg VITE_API_BASE_URL="https://${DOMAIN_BACKEND}/api" --build-arg VITE_WEBHOOK_URL="${VITE_WEBHOOK_URL}"
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Falha ao fazer build do frontend${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Build concluído${NC}"
+
+# Deploy com Docker Stack
+echo -e "\n${BLUE}🚀 Fazendo deploy com Docker Stack...${NC}"
+docker stack deploy -c docker-stack.yml --with-registry-auth casayme
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -141,11 +169,18 @@ if [ $? -eq 0 ]; then
     echo -e ""
     echo -e "🔍 Monitoramento:"
     echo -e "   Traefik Dashboard: ${CYAN}http://localhost:8080${NC}"
-    echo -e "   Logs: ${CYAN}docker compose logs -f${NC}"
+    echo -e "   Stack status: ${CYAN}docker stack ps casayme${NC}"
+    echo -e "   Logs backend: ${CYAN}docker service logs casayme_backend -f${NC}"
+    echo -e "   Logs frontend: ${CYAN}docker service logs casayme_frontend -f${NC}"
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
-    echo -e "${YELLOW}⏰ Aguarde alguns minutos para os certificados SSL serem gerados${NC}"
-    echo -e "${YELLOW}   Se houver problemas com SSL, verifique: docker logs traefik${NC}"
+    echo -e "${YELLOW}⏰ Aguarde alguns minutos para:${NC}"
+    echo -e "${YELLOW}   1. Os serviços iniciarem completamente${NC}"
+    echo -e "${YELLOW}   2. Os certificados SSL serem gerados${NC}"
+    echo -e "${YELLOW}   3. O Traefik detectar os novos serviços${NC}"
+    echo ""
+    echo -e "${YELLOW}🔍 Acompanhe o status:${NC}"
+    echo -e "${YELLOW}   docker stack ps casayme${NC}"
     echo ""
 else
     echo ""
@@ -155,8 +190,9 @@ else
     echo ""
     echo -e "${YELLOW}Verifique os logs acima para identificar o erro.${NC}"
     echo -e "${YELLOW}Comandos úteis:${NC}"
-    echo -e "  - ${CYAN}docker compose logs${NC}"
-    echo -e "  - ${CYAN}docker compose ps${NC}"
+    echo -e "  - ${CYAN}docker stack ps casayme${NC}"
+    echo -e "  - ${CYAN}docker service logs casayme_backend${NC}"
+    echo -e "  - ${CYAN}docker service logs casayme_frontend${NC}"
     echo ""
     exit 1
 fi
