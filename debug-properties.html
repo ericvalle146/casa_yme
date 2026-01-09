@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug - Casa YME</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #00ff00; }
+        .error { color: #ff0000; }
+        .success { color: #00ff00; }
+        pre { background: #000; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug - Carregamento de Propriedades</h1>
+
+    <div class="test">
+        <h2>1. Testando /api/properties</h2>
+        <button onclick="testAPI()">Testar Agora</button>
+        <div id="result1"></div>
+    </div>
+
+    <div class="test">
+        <h2>2. Verificar API_BASE_URL do Frontend</h2>
+        <pre id="apiBaseUrl">Carregando...</pre>
+    </div>
+
+    <script>
+        // Verificar API_BASE_URL
+        const apiBaseUrl = 'https://backend.casayme.com.br';
+        document.getElementById('apiBaseUrl').textContent = apiBaseUrl;
+
+        async function testAPI() {
+            const resultDiv = document.getElementById('result1');
+            resultDiv.innerHTML = '<p>⏳ Testando...</p>';
+
+            try {
+                const url = `${apiBaseUrl}/api/properties`;
+                console.log('Fazendo fetch em:', url);
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    resultDiv.innerHTML = `<p class="error">❌ Erro HTTP ${response.status}</p>`;
+                    return;
+                }
+
+                if (!Array.isArray(data)) {
+                    resultDiv.innerHTML = `<p class="error">❌ Resposta não é array</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    return;
+                }
+
+                if (data.length === 0) {
+                    resultDiv.innerHTML = `<p class="error">❌ Array vazio - Sem propriedades no banco</p>`;
+                    return;
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="success">✅ ${data.length} propriedades encontradas!</p>
+                    <pre>${JSON.stringify(data[0], null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Erro: ${error.message}</p>`;
+                console.error('Erro completo:', error);
+            }
+        }
+
+        // Testar automaticamente ao carregar
+        testAPI();
+    </script>
+</body>
+</html>

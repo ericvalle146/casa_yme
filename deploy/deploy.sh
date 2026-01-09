@@ -157,6 +157,10 @@ echo -e "${GREEN}✅ Build concluído${NC}"
 
 # Deploy com Docker Stack
 echo -e "\n${BLUE}🚀 Fazendo deploy com Docker Stack...${NC}"
+# Exportar variáveis para que o Docker Stack possa usá-las
+export DOMAIN_FRONTEND DOMAIN_BACKEND PORT NODE_ENV CORS_ORIGINS N8N_WEBHOOK_URL
+export DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME DATABASE_URL
+export ACCESS_TOKEN_SECRET ACCESS_TOKEN_TTL_MINUTES REFRESH_TOKEN_TTL_DAYS PASSWORD_SALT_ROUNDS
 docker stack deploy -c docker-stack.yml --with-registry-auth casayme
 
 if [ $? -eq 0 ]; then
