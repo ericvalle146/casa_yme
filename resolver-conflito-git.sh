@@ -113,7 +113,7 @@ echo ""
 
 # Verificar se os novos arquivos estão presentes
 echo -e "${BLUE}Verificando novos arquivos...${NC}"
-NEW_FILES=("deploy-completo.sh" "verificar-traefik.sh" "configurar-traefik-acme.sh" "DEPLOY-FINAL.md" "COMO-USAR.md" "SOLUCAO-DEPLOY.md")
+NEW_FILES=("deploy.sh" "APIS.md" "APLICACAO.md" "sql/ESTRUTURA-BANCO.md" "LEIA-ANTES.txt")
 
 for file in "${NEW_FILES[@]}"; do
     if [ -f "$file" ]; then
@@ -125,7 +125,5 @@ done
 
 echo ""
 echo -e "${BLUE}💡 Próximos passos:${NC}"
-echo -e "   - Execute: ${YELLOW}./deploy-completo.sh${NC} para fazer o deploy"
-echo -e "   - Ou verifique: ${YELLOW}./verificar-traefik.sh${NC} para diagnosticar problemas"
+echo -e "   - Execute: ${YELLOW}./deploy.sh${NC} para fazer o deploy"
 echo ""
-

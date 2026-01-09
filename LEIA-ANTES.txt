@@ -1,0 +1,8 @@
+Antes de realizar qualquer coisa, leia todos esses .mds:
+- APIS.md
+- APLICACAO.md
+- sql/ESTRUTURA-BANCO.md
+
+Atualize esses documentos sempre que fizer qualquer alteracao no sistema.
+Pense e repense sobre as alteracoes e confirme se estao corretas.
+Sempre aja com clear architecture.

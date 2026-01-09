@@ -1,0 +1,135 @@
+═══════════════════════════════════════════════════════
+    🚀 COMO FAZER DEPLOY - CASA YME (100% AUTOMÁTICO)
+═══════════════════════════════════════════════════════
+
+📌 O QUE VOCÊ PRECISA FAZER (APENAS 2 PASSOS):
+
+┌─────────────────────────────────────────────────────┐
+│ PASSO 1: ENVIAR ARQUIVOS PARA A VPS                │
+└─────────────────────────────────────────────────────┘
+
+Na sua máquina local, execute:
+
+    ./enviar-para-vps.sh
+
+O script vai perguntar:
+- Usuário da VPS (ex: root)
+- IP da VPS (ex: 123.45.67.89)
+- Caminho (ex: /root/casa_yme)
+
+┌─────────────────────────────────────────────────────┐
+│ PASSO 2: RODAR DEPLOY NA VPS                       │
+└─────────────────────────────────────────────────────┘
+
+Conecte na VPS e execute:
+
+    cd /root/casa_yme/deploy
+    ./deploy.sh
+
+PRONTO! Aguarde 5 minutos. 🎉
+
+═══════════════════════════════════════════════════════
+
+📱 ONDE ACESSAR DEPOIS:
+
+✅ Frontend: https://casayme.com.br
+✅ Backend:  https://backend.casayme.com.br
+✅ API Test: https://backend.casayme.com.br/health
+
+═══════════════════════════════════════════════════════
+
+⚡ COMANDOS ÚTEIS NA VPS:
+
+# Ver status
+docker compose ps
+
+# Ver logs
+docker compose logs -f
+
+# Reiniciar
+docker compose restart
+
+# Refazer deploy
+./deploy.sh
+
+═══════════════════════════════════════════════════════
+
+🐛 SE DER PROBLEMA:
+
+1. Ver logs:
+   docker compose logs
+
+2. Refazer tudo:
+   docker compose down
+   ./deploy.sh
+
+3. Ver o CHECKLIST-DEPLOY.md completo
+
+═══════════════════════════════════════════════════════
+
+📚 DOCUMENTAÇÃO COMPLETA:
+
+- GUIA-DEPLOY.md        → Guia passo a passo detalhado
+- CHECKLIST-DEPLOY.md   → Checklist de validação
+- deploy/README.md      → Documentação técnica
+
+═══════════════════════════════════════════════════════
+
+✨ O QUE O DEPLOY FAZ AUTOMATICAMENTE:
+
+✅ Cria o .env com dados reais (você não precisa editar)
+✅ Gera chave de segurança JWT aleatória
+✅ Valida todas as configurações
+✅ Faz build do frontend e backend
+✅ Configura SSL com Let's Encrypt
+✅ Sobe todos os containers
+✅ Configura HTTPS automático
+✅ Conecta no banco de dados
+
+VOCÊ NÃO PRECISA CONFIGURAR NADA!
+APENAS RODE: ./deploy.sh
+
+═══════════════════════════════════════════════════════
+
+🧪 TESTAR LOCALMENTE ANTES (OPCIONAL):
+
+    cd deploy/
+    ./test-local.sh
+
+Acesse: http://localhost
+
+═══════════════════════════════════════════════════════
+
+💡 ATUALIZAR CÓDIGO EM PRODUÇÃO:
+
+1. Enviar novamente:
+   ./enviar-para-vps.sh
+
+2. Na VPS:
+   cd /root/casa_yme/deploy
+   ./deploy.sh
+
+═══════════════════════════════════════════════════════
+
+✅ PRÉ-REQUISITOS (VPS):
+
+- Docker instalado
+- Docker Compose instalado
+- Portas 80 e 443 abertas
+- DNS apontando:
+  • casayme.com.br → IP da VPS
+  • backend.casayme.com.br → IP da VPS
+
+═══════════════════════════════════════════════════════
+
+📊 DADOS JÁ CONFIGURADOS:
+
+✅ Frontend: casayme.com.br
+✅ Backend: backend.casayme.com.br
+✅ Banco: 72.61.131.168
+✅ SSL: Let's Encrypt automático
+✅ Todas as variáveis de ambiente
+
+═══════════════════════════════════════════════════════
+
+Tudo pronto para deploy automático! 🚀

@@ -1,253 +1,213 @@
-# Deploy Docker Swarm - ImóvelPro
+# 🚀 Deploy Automático - Casa YME
 
-Este diretório contém os arquivos necessários para fazer deploy do ImóvelPro usando Docker Swarm Stack, seguindo o padrão usado no projeto saborpaulista.
-
-## 🎯 Por Que Docker Swarm?
-
-- ✅ **Integração nativa** com a network `vpsnet` (overlay do Swarm)
-- ✅ **Sem downtime** - não requer parar outros serviços
-- ✅ **Traefik detecta automaticamente** os serviços
-- ✅ **Mesmo padrão** usado nos outros projetos (saborpaulista, etc.)
+Deploy 100% automatizado para a aplicação Casa YME na VPS.
 
 ## 📋 Pré-requisitos
 
-1. Docker Swarm ativo
-2. Network `vpsnet` criada pelo Docker Swarm
-3. Traefik rodando no Docker Swarm
-4. Arquivo `server/.env` configurado
+- Docker e Docker Compose instalados na VPS
+- Domínios apontados para o IP da VPS:
+  - `casayme.com.br` → IP da VPS
+  - `backend.casayme.com.br` → IP da VPS
+- Banco de dados Postgres externo já configurado
+- Portas 80 e 443 liberadas no firewall
 
-## 🚀 Deploy
+## 🎯 Como usar
 
-### Opção 1: Script Automático (Recomendado)
+### 1. Subir os arquivos para a VPS
 
 ```bash
-cd ~/Prototipo_Mariana_Imobiliarias
-./deploy/deploy-swarm.sh
+# Na sua máquina local, dentro do projeto
+scp -r deploy/ usuario@ip-da-vps:/home/usuario/casa_yme/
+scp -r frontend/ usuario@ip-da-vps:/home/usuario/casa_yme/
+scp -r backend/ usuario@ip-da-vps:/home/usuario/casa_yme/
+scp -r sql/ usuario@ip-da-vps:/home/usuario/casa_yme/
 ```
 
-### Opção 2: Manual
+### 2. Conectar na VPS e rodar o deploy
 
 ```bash
-# 1. Build das imagens
-docker build -t prototipo_mariana_imobiliarias-frontend:latest -f Dockerfile.frontend --build-arg VITE_API_BASE_URL=https://apiapi.jyze.space .
-docker build -t prototipo_mariana_imobiliarias-backend:latest -f server/Dockerfile ./server
+# Conectar na VPS
+ssh usuario@ip-da-vps
 
-# 2. Exportar variáveis
-export TRAEFIK_NETWORK=vpsnet
-export FRONTEND_IMAGE=prototipo_mariana_imobiliarias-frontend:latest
-export BACKEND_IMAGE=prototipo_mariana_imobiliarias-backend:latest
-export PORT=4000
-export CORS_ORIGINS=https://casayme.com.br
-export NODE_ENV=production
-export N8N_WEBHOOK_URL=https://seu-servidor-n8n.com/webhook/endpoint
+# Entrar na pasta de deploy
+cd /home/usuario/casa_yme/deploy
 
-# 3. Deploy da stack
-docker stack deploy -c deploy/docker-stack.yml imovelpro
+# Tornar o script executável (apenas na primeira vez)
+chmod +x deploy.sh
+
+# RODAR O DEPLOY - APENAS ISSO!
+./deploy.sh
 ```
 
-## 📝 Configuração
+**Pronto! O script faz TUDO automaticamente:**
+- ✅ Cria o arquivo `.env` com dados reais
+- ✅ Gera uma chave de segurança JWT aleatória
+- ✅ Valida todas as configurações
+- ✅ Faz build dos containers
+- ✅ Configura SSL com Let's Encrypt
+- ✅ Sobe toda a aplicação
 
-### Variáveis de Ambiente
-
-O script `deploy-swarm.sh` carrega automaticamente as variáveis do arquivo `server/.env`:
+### 3. Verificar se subiu
 
 ```bash
-PORT=4000
-CORS_ORIGINS=https://casayme.com.br
-NODE_ENV=production
-N8N_WEBHOOK_URL=https://seu-servidor-n8n.com/webhook/endpoint
+# Ver status dos containers
+docker compose ps
+
+# Ver logs em tempo real
+docker compose logs -f
+
+# Testar o backend
+curl https://backend.casayme.com.br/health
+
+# Testar o frontend
+curl https://casayme.com.br
 ```
 
-### Network do Traefik
+## 🌐 Acessar a aplicação
 
-O script detecta automaticamente a network do Traefik (prioriza `vpsnet`). Você pode forçar uma network específica:
+Após o deploy, acesse:
+
+- **Frontend**: https://casayme.com.br
+- **Backend**: https://backend.casayme.com.br
+- **Traefik Dashboard**: http://ip-da-vps:8080
+
+## ⚙️ Configurações
+
+### Arquivo `.env.example`
+
+Contém **TODOS os dados reais** já configurados:
+
+- ✅ Domínios de produção
+- ✅ Email para SSL
+- ✅ Conexão com banco de dados externo
+- ✅ CORS configurado
+- ✅ Todas as variáveis do backend
+
+O script `deploy.sh` copia automaticamente `.env.example` → `.env`
+
+### Variáveis importantes
+
+Se precisar alterar algo, edite o `.env` após o primeiro deploy:
 
 ```bash
-export TRAEFIK_NETWORK=vpsnet
-./deploy/deploy-swarm.sh
+# Editar configurações (opcional)
+nano .env
+
+# Aplicar mudanças
+docker compose up -d --build
 ```
 
-## 🔍 Verificação
+## 📝 Variáveis de ambiente
 
-### Verificar Serviços
+| Variável | Valor Padrão | Descrição |
+|----------|--------------|-----------|
+| `DOMAIN_FRONTEND` | casayme.com.br | Domínio do site |
+| `DOMAIN_BACKEND` | backend.casayme.com.br | Domínio da API |
+| `LETSENCRYPT_EMAIL` | contato@casayme.com.br | Email para SSL |
+| `DB_HOST` | 72.61.131.168 | IP do banco externo |
+| `DB_USER` | admin | Usuário do banco |
+| `DB_PASSWORD` | *** | Senha do banco |
+| `DB_NAME` | casa_yme | Nome do banco |
+| `VITE_WEBHOOK_URL` | (vazio) | Webhook N8N (opcional) |
 
-```bash
-# Listar serviços
-docker service ls | grep imovelpro
-
-# Ver status detalhado
-docker service ps imovelpro_frontend
-docker service ps imovelpro_backend
-
-# Ver logs
-docker service logs -f imovelpro_frontend
-docker service logs -f imovelpro_backend
-```
-
-### Verificar Network
+## 🔧 Comandos úteis
 
 ```bash
-# Ver containers na network vpsnet
-docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}'
+# Ver logs de um serviço específico
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f traefik
 
-# Deve incluir: imovelpro_frontend.1.xxx e imovelpro_backend.1.xxx
-```
+# Reiniciar um serviço
+docker compose restart backend
 
-### Verificar Traefik
-
-```bash
-# Ver rotas do Traefik (se API habilitada)
-curl -s http://localhost:8080/api/http/routers | jq '.[] | select(.name | contains("imovelpro"))'
-
-# Testar domínios
-curl -I https://casayme.com.br
-curl -I https://apiapi.jyze.space/health
-```
-
-## 🛠️ Comandos Úteis
-
-### Atualizar Stack
-
-```bash
-# Rebuild das imagens e redeploy
-./deploy/deploy-swarm.sh
-```
-
-### Escalar Serviços
-
-```bash
-# Escalar frontend para 2 réplicas
-docker service scale imovelpro_frontend=2
-
-# Escalar backend para 2 réplicas
-docker service scale imovelpro_backend=2
-```
-
-### Rollback
-
-```bash
-# Ver histórico de atualizações
-docker service ps imovelpro_frontend --no-trunc
-
-# Rollback para versão anterior
-docker service rollback imovelpro_frontend
-docker service rollback imovelpro_backend
-```
-
-### Remover Stack
-
-```bash
-# Remover stack completa
-docker stack rm imovelpro
-
-# Aguardar remoção completa
-docker stack ps imovelpro
-```
-
-## 🔄 Migração de docker-compose para Swarm
-
-Se você estava usando `docker-compose.yml`, execute:
-
-```bash
-# 1. Parar containers antigos
+# Parar tudo
 docker compose down
 
-# 2. Remover containers e network
-docker stop imovelpro-frontend imovelpro-backend 2>/dev/null || true
-docker rm imovelpro-frontend imovelpro-backend 2>/dev/null || true
-docker network rm prototipo_mariana_imobiliarias_imovelpro-network 2>/dev/null || true
+# Atualizar e fazer redeploy
+git pull  # se estiver usando git
+./deploy.sh
 
-# 3. Deploy com Swarm
-./deploy/deploy-swarm.sh
+# Limpar tudo e fazer deploy limpo
+docker compose down -v
+./deploy.sh
 ```
 
-## 📊 Diferenças: docker-compose vs Docker Swarm
+## 🐛 Troubleshooting
 
-| Aspecto | docker-compose | Docker Swarm Stack |
-|---------|---------------|-------------------|
-| Network overlay | ❌ Não pode conectar | ✅ Conecta automaticamente |
-| Comando | `docker-compose up` | `docker stack deploy` |
-| Formato | `docker-compose.yml` | `docker-stack.yml` |
-| Labels Traefik | ✅ Mesmas | ✅ Mesmas |
-| Variáveis de ambiente | `env_file` | `environment` (exportadas) |
-| Health checks | ✅ Suportado | ✅ Suportado |
-| Restart policy | `restart: unless-stopped` | `deploy.restart_policy` |
-| Dependências | `depends_on` | Ordem de deploy |
+### SSL não funciona
 
-## ⚠️ Troubleshooting
-
-### Serviços não aparecem no Traefik
-
-1. Verificar se estão na network `vpsnet`:
+1. Verificar se os domínios apontam para o IP correto:
    ```bash
-   docker network inspect vpsnet --format '{{range .Containers}}{{.Name}} {{end}}'
+   nslookup casayme.com.br
+   nslookup backend.casayme.com.br
    ```
 
-2. Verificar labels do Traefik:
+2. Ver logs do Traefik:
    ```bash
-   docker service inspect imovelpro_frontend --format '{{json .Spec.TaskTemplate.ContainerSpec.Labels}}' | jq
+   docker logs traefik
    ```
 
-3. Verificar logs do Traefik:
+3. Aguardar alguns minutos - Let's Encrypt pode demorar
+
+### Backend não conecta no banco
+
+1. Verificar se o IP do banco está acessível:
    ```bash
-   docker service logs -f traefik_traefik
+   nc -zv 72.61.131.168 5432
    ```
 
-### Erro: "network vpsnet not found"
-
-1. Verificar se a network existe:
+2. Ver logs do backend:
    ```bash
-   docker network ls | grep vpsnet
+   docker compose logs backend
    ```
 
-2. Verificar se é uma network overlay:
+### Containers não sobem
+
+1. Ver status:
    ```bash
-   docker network inspect vpsnet --format '{{.Driver}} {{.Scope}}'
-   # Deve ser: overlay swarm
+   docker compose ps
    ```
 
-3. Forçar network específica:
+2. Ver logs de erro:
    ```bash
-   export TRAEFIK_NETWORK=vpsnet
-   ./deploy/deploy-swarm.sh
+   docker compose logs
    ```
 
-### Serviços não iniciam
+## 📦 Estrutura
 
-1. Ver logs dos serviços:
-   ```bash
-   docker service logs imovelpro_frontend
-   docker service logs imovelpro_backend
-   ```
+```
+deploy/
+├── docker-compose.yml   # Configuração dos serviços
+├── .env.example         # Variáveis com dados reais
+├── .env                 # Gerado automaticamente pelo script
+├── deploy.sh            # Script de deploy automático
+└── README.md            # Este arquivo
+```
 
-2. Ver status detalhado:
-   ```bash
-   docker service ps imovelpro_frontend --no-trunc
-   docker service ps imovelpro_backend --no-trunc
-   ```
+## 🔄 Atualizar a aplicação
 
-3. Verificar health checks:
-   ```bash
-   docker service inspect imovelpro_frontend --format '{{json .Spec.TaskTemplate.ContainerSpec.Healthcheck}}' | jq
-   ```
+Para atualizar o código:
 
-## 📚 Referências
+```bash
+# Fazer as mudanças no código
+# Subir novamente para a VPS
+scp -r frontend/ usuario@ip-da-vps:/home/usuario/casa_yme/
+scp -r backend/ usuario@ip-da-vps:/home/usuario/casa_yme/
 
-- [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/)
-- [Docker Stack Deploy](https://docs.docker.com/engine/reference/commandline/stack_deploy/)
-- [Traefik Docker Provider](https://doc.traefik.io/traefik/providers/docker/)
+# Na VPS, fazer redeploy
+cd /home/usuario/casa_yme/deploy
+./deploy.sh
+```
 
-## 🔗 Arquivos Relacionados
+## 📧 Suporte
 
-- `docker-stack.yml` - Configuração da stack Swarm
-- `deploy-swarm.sh` - Script de deploy automático
-- `../docker-compose.yml` - Configuração antiga (não funciona com Swarm)
-- `../PROBLEMA-COMPLETO.md` - Documentação completa do problema
+Em caso de problemas, verifique:
+1. Os logs dos containers
+2. Se os domínios estão apontando corretamente
+3. Se as portas 80 e 443 estão liberadas
+4. Se o banco de dados está acessível
 
+---
 
-
-
-
-
-
-
+**Deploy automático criado para Casa YME** 🏠

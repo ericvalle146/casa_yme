@@ -1,0 +1,182 @@
+════════════════════════════════════════════════════════
+    ⚡ QUICK START - DEPLOY CASA YME EM 5 MINUTOS
+════════════════════════════════════════════════════════
+
+
+PRÉ-REQUISITOS NA VPS
+─────────────────────────────────────────────────────
+
+□ Docker instalado
+□ Docker Compose instalado
+□ Portas 80 e 443 abertas
+□ DNS configurado:
+  □ casayme.com.br → IP da VPS
+  □ backend.casayme.com.br → IP da VPS
+
+
+PASSO 1: VALIDAR LOCAL
+─────────────────────────────────────────────────────
+
+Na sua máquina local:
+
+    cd /home/eric/Vídeos/casa_yme
+    ./validar-antes-deploy.sh
+
+Resultado esperado: ✅ TUDO PRONTO PARA DEPLOY!
+
+
+PASSO 2: ENVIAR PARA VPS
+─────────────────────────────────────────────────────
+
+    ./enviar-para-vps.sh
+
+Preencha quando solicitado:
+• Usuário VPS: _________________
+• IP VPS: _____________________
+• Caminho: ____________________
+
+
+PASSO 3: DEPLOY NA VPS
+─────────────────────────────────────────────────────
+
+Conectar na VPS:
+
+    ssh [USUARIO]@[IP]
+
+Fazer deploy:
+
+    cd [CAMINHO]/deploy
+    ./deploy.sh
+
+Aguardar: 5-10 minutos
+
+
+PASSO 4: VERIFICAR
+─────────────────────────────────────────────────────
+
+Ver status:
+
+    docker compose ps
+
+Ver logs:
+
+    docker compose logs -f
+
+Testar:
+
+    curl https://backend.casayme.com.br/health
+    curl https://casayme.com.br
+
+
+ACESSOS
+─────────────────────────────────────────────────────
+
+✓ Frontend:   https://casayme.com.br
+✓ Backend:    https://backend.casayme.com.br
+✓ Health:     https://backend.casayme.com.br/health
+✓ Dashboard:  http://[IP-VPS]:8080
+
+
+COMANDOS ÚTEIS
+─────────────────────────────────────────────────────
+
+Ver status:       docker compose ps
+Ver logs:         docker compose logs -f
+Reiniciar:        docker compose restart
+Parar:            docker compose down
+Refazer deploy:   ./deploy.sh
+
+
+TROUBLESHOOTING
+─────────────────────────────────────────────────────
+
+Containers não sobem:
+    docker compose down
+    ./deploy.sh
+
+SSL não funciona:
+    docker logs traefik
+    # Aguardar 5 minutos
+
+Backend erro:
+    docker compose logs backend
+
+
+ATUALIZAR CÓDIGO
+─────────────────────────────────────────────────────
+
+Local:
+    ./enviar-para-vps.sh
+
+VPS:
+    cd deploy
+    ./deploy.sh
+
+
+DADOS DE ACESSO
+─────────────────────────────────────────────────────
+
+VPS:
+  Usuário: _________________
+  IP: _____________________
+  Caminho: ________________
+
+Banco:
+  Host: 72.61.131.168
+  Porta: 5432
+  Usuário: admin
+  Banco: casa_yme
+
+Domínios:
+  Frontend: casayme.com.br
+  Backend: backend.casayme.com.br
+
+Email SSL:
+  contato@casayme.com.br
+
+
+ARQUIVOS IMPORTANTES
+─────────────────────────────────────────────────────
+
+deploy/.env.example       Variáveis (dados reais)
+deploy/deploy.sh          Script de deploy
+deploy/docker-compose.yml Configuração containers
+
+
+DOCUMENTAÇÃO
+─────────────────────────────────────────────────────
+
+COMO-FAZER-DEPLOY.txt    Resumo de 2 min
+DEPLOY-PRONTO.md         Visão geral
+GUIA-DEPLOY.md           Passo a passo
+CHECKLIST-DEPLOY.md      Validação completa
+INDICE.md                Navegação
+
+
+LEMBRE-SE
+─────────────────────────────────────────────────────
+
+✓ O script deploy.sh cria o .env automaticamente
+✓ Não precisa editar nenhum arquivo
+✓ Aguarde 5 minutos para SSL ser gerado
+✓ Use docker compose logs -f para acompanhar
+✓ Em caso de erro, rode ./deploy.sh novamente
+
+
+STATUS DO DEPLOY
+─────────────────────────────────────────────────────
+
+Data: _______________
+
+□ Validação local OK
+□ Arquivos enviados para VPS
+□ Deploy executado com sucesso
+□ Frontend acessível
+□ Backend acessível
+□ SSL funcionando
+□ Logs sem erros
+
+
+════════════════════════════════════════════════════════
+           ✅ DEPLOY PRONTO PARA PRODUÇÃO
+════════════════════════════════════════════════════════
