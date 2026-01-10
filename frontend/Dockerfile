@@ -15,28 +15,43 @@ COPY index.html ./
 # Instalar dependências
 RUN npm ci
 
+# Build da aplicação - DECLARAR ARGS E ENVS ANTES DE COPIAR CÓDIGO
+# Variáveis de ambiente do frontend (opcionais, com valor padrão no código)
+ARG VITE_WEBHOOK_URL=""
+ARG VITE_API_BASE_URL=""
+
+# DEBUG: Mostrar os ARGs recebidos
+RUN echo "==================================" && \
+    echo "🔍 DEBUG - ARGs recebidos do docker build:" && \
+    echo "ARG VITE_API_BASE_URL='${VITE_API_BASE_URL}'" && \
+    echo "ARG VITE_WEBHOOK_URL='${VITE_WEBHOOK_URL}'" && \
+    echo "=================================="
+
+# Setar como variáveis de ambiente para o Vite
+ENV VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+# DEBUG: Confirmar ENVs
+RUN echo "==================================" && \
+    echo "🔍 DEBUG - ENVs setadas:" && \
+    echo "ENV VITE_API_BASE_URL='${VITE_API_BASE_URL}'" && \
+    echo "ENV VITE_WEBHOOK_URL='${VITE_WEBHOOK_URL}'" && \
+    env | grep VITE_ || echo "Nenhuma variável VITE_ encontrada!" && \
+    echo "=================================="
+
 # Copiar código fonte
 COPY src ./src
 COPY public ./public
 
-# Build da aplicação
-# Variáveis de ambiente do frontend (opcionais, com valor padrão no código)
-ARG VITE_WEBHOOK_URL
-ARG VITE_API_BASE_URL
-ENV VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-
-# DEBUG: Mostrar as variáveis que Vite vai usar
-RUN echo "🔍 DEBUG - Variáveis de ambiente durante o build:" && \
-    echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" && \
-    echo "VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}" && \
-    env | grep VITE || true
-
 RUN npm run build
 
 # DEBUG: Verificar se a variável foi embutida no build
-RUN echo "🔍 Verificando se backend.casayme.com.br está no build:" && \
-    grep -r "backend.casayme.com.br" dist/assets/*.js && echo "✅ Encontrado!" || echo "❌ NÃO encontrado!"
+RUN echo "==================================" && \
+    echo "🔍 Verificando se backend.casayme.com.br está no build:" && \
+    (grep -r "backend.casayme.com.br" dist/assets/*.js && echo "✅ Encontrado!") || echo "❌ NÃO encontrado!" && \
+    echo "🔍 Verificando o que está no api.ts compilado:" && \
+    grep -A2 -B2 "API_BASE_URL" dist/assets/*.js | head -20 && \
+    echo "=================================="
 
 # Estágio de produção com Nginx
 FROM nginx:alpine
