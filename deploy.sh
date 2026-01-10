@@ -174,59 +174,66 @@ fi
 echo -e "${BLUE}   Usando certresolver: ${YELLOW}$CERT_RESOLVER${NC}"
 echo ""
 
-# Verificar arquivo .env do backend
-echo -e "${BLUE}[5/10] Verificando configuração do backend...${NC}"
-ENV_FILE="$PROJECT_ROOT/backend/.env"
-ENV_EXAMPLE="$PROJECT_ROOT/backend/env.example"
+# Verificar arquivo .env da raiz (usado pelo docker-stack.yml)
+echo -e "${BLUE}[5/10] Verificando configuração principal...${NC}"
+ROOT_ENV_FILE="$PROJECT_ROOT/.env"
+ROOT_ENV_EXAMPLE="$PROJECT_ROOT/deploy/.env.example"
 
-escape_sed() {
-    printf '%s' "$1" | sed -e 's/[\\/&]/\\&/g'
-}
-
-upsert_env() {
-    local file="$1"
-    local key="$2"
-    local value="$3"
-    local escaped
-    escaped="$(escape_sed "$value")"
-    if grep -q "^${key}=" "$file"; then
-        sed -i "s|^${key}=.*|${key}=${escaped}|" "$file"
+if [ ! -f "$ROOT_ENV_FILE" ]; then
+    echo -e "${YELLOW}⚠️  Arquivo .env não encontrado na raiz${NC}"
+    if [ -f "$ROOT_ENV_EXAMPLE" ]; then
+        echo -e "${BLUE}   Criando a partir de deploy/.env.example...${NC}"
+        cp "$ROOT_ENV_EXAMPLE" "$ROOT_ENV_FILE"
+        echo -e "${GREEN}✅ Arquivo .env criado${NC}"
+        echo -e "${YELLOW}   IMPORTANTE: Revise as variáveis de ambiente em .env antes do próximo deploy${NC}"
     else
-        printf "%s=%s\n" "$key" "$value" >> "$file"
-    fi
-}
-
-if [ ! -f "$ENV_FILE" ]; then
-    echo -e "${YELLOW}⚠️  Arquivo backend/.env não encontrado${NC}"
-    if [ -f "$ENV_EXAMPLE" ]; then
-        echo -e "${BLUE}   Criando a partir de env.example...${NC}"
-        cp "$ENV_EXAMPLE" "$ENV_FILE"
-    else
-        echo -e "${RED}❌ Arquivo backend/env.example não encontrado${NC}"
+        echo -e "${RED}❌ Arquivo deploy/.env.example não encontrado${NC}"
         exit 1
     fi
+else
+    echo -e "${GREEN}✅ Arquivo .env encontrado${NC}"
 fi
 
-if [ -n "${N8N_WEBHOOK_URL:-}" ]; then
-    upsert_env "$ENV_FILE" "N8N_WEBHOOK_URL" "$N8N_WEBHOOK_URL"
-fi
+# Carregar variáveis do .env principal
+echo -e "${BLUE}   Carregando variáveis de ambiente do .env...${NC}"
+set -a
+source "$ROOT_ENV_FILE"
+set +a
 
-if [ -n "${CORS_ORIGINS:-}" ]; then
-    upsert_env "$ENV_FILE" "CORS_ORIGINS" "$CORS_ORIGINS"
-elif ! grep -q "^CORS_ORIGINS=" "$ENV_FILE"; then
-    upsert_env "$ENV_FILE" "CORS_ORIGINS" "https://${DOMAIN_FRONTEND}"
-fi
+echo ""
 
-CURRENT_WEBHOOK=$(grep "^N8N_WEBHOOK_URL=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
-if [ -z "$CURRENT_WEBHOOK" ] || echo "$CURRENT_WEBHOOK" | grep -q "seu-servidor-n8n"; then
-    echo -e "${YELLOW}⚠️  N8N_WEBHOOK_URL não está configurado corretamente${NC}"
+# Criar/atualizar arquivo .env do backend com as variáveis do .env principal
+echo -e "${BLUE}[6/10] Configurando backend...${NC}"
+ENV_FILE="$PROJECT_ROOT/backend/.env"
+
+echo -e "${BLUE}   Gerando backend/.env a partir das variáveis carregadas...${NC}"
+cat > "$ENV_FILE" << EOF
+PORT=${PORT:-4000}
+NODE_ENV=${NODE_ENV:-production}
+CORS_ORIGINS=${CORS_ORIGINS:-https://${DOMAIN_FRONTEND}}
+N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-}
+DB_HOST=${DB_HOST}
+DB_PORT=${DB_PORT:-5432}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=${DB_NAME}
+ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+ACCESS_TOKEN_TTL_MINUTES=${ACCESS_TOKEN_TTL_MINUTES:-15}
+REFRESH_TOKEN_TTL_DAYS=${REFRESH_TOKEN_TTL_DAYS:-7}
+PASSWORD_SALT_ROUNDS=${PASSWORD_SALT_ROUNDS:-12}
+EOF
+
+echo -e "${GREEN}✅ Arquivo backend/.env criado/atualizado${NC}"
+
+if [ -z "${N8N_WEBHOOK_URL:-}" ]; then
+    echo -e "${YELLOW}⚠️  N8N_WEBHOOK_URL não está configurado${NC}"
 else
     echo -e "${GREEN}✅ N8N_WEBHOOK_URL configurado${NC}"
 fi
 echo ""
 
 # Parar containers antigos
-echo -e "${BLUE}[6/10] Parando containers antigos...${NC}"
+echo -e "${BLUE}[7/10] Parando containers antigos...${NC}"
 cd "$PROJECT_ROOT"
 
 # Parar docker compose se estiver rodando
@@ -246,7 +253,7 @@ echo -e "${GREEN}✅ Containers antigos removidos${NC}"
 echo ""
 
 # Build das imagens
-echo -e "${BLUE}[7/10] Preparando build...${NC}"
+echo -e "${BLUE}[8/10] Preparando build...${NC}"
 
 # Verificar se vite.config.ts existe
 if [ ! -f "$PROJECT_ROOT/frontend/vite.config.ts" ]; then
@@ -311,7 +318,7 @@ fi
 echo ""
 
 # Deploy
-echo -e "${BLUE}[8/10] Fazendo deploy dos serviços...${NC}"
+echo -e "${BLUE}[9/10] Fazendo deploy dos serviços...${NC}"
 
 export DOMAIN_FRONTEND
 export DOMAIN_BACKEND
@@ -325,17 +332,22 @@ export NODE_ENV="${NODE_ENV:-production}"
 if [ "$SWARM_MODE" = true ]; then
     # Deploy com Swarm
     echo -e "${BLUE}   Deployando com Docker Swarm...${NC}"
-    
-    # Carregar variáveis do .env
-    set -a
-    source "$PROJECT_ROOT/backend/.env" 2>/dev/null || true
-    set +a
-    
-    # Exportar variáveis para o stack
+
+    # Exportar todas as variáveis necessárias para o stack
     export FRONTEND_IMAGE="casayme-frontend:latest"
     export BACKEND_IMAGE="casayme-backend:latest"
     export PORT=${PORT:-4000}
     export N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-}
+    export DB_HOST=${DB_HOST}
+    export DB_PORT=${DB_PORT:-5432}
+    export DB_USER=${DB_USER}
+    export DB_PASSWORD=${DB_PASSWORD}
+    export DB_NAME=${DB_NAME}
+    export DATABASE_URL=${DATABASE_URL}
+    export ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+    export ACCESS_TOKEN_TTL_MINUTES=${ACCESS_TOKEN_TTL_MINUTES:-15}
+    export REFRESH_TOKEN_TTL_DAYS=${REFRESH_TOKEN_TTL_DAYS:-7}
+    export PASSWORD_SALT_ROUNDS=${PASSWORD_SALT_ROUNDS:-12}
     
     docker stack deploy -c "$PROJECT_ROOT/deploy/docker-stack.yml" casayme || {
         echo -e "${RED}❌ Erro ao fazer deploy da stack${NC}"
@@ -366,7 +378,7 @@ fi
 echo ""
 
 # Verificar saúde dos serviços
-echo -e "${BLUE}[9/10] Verificando saúde dos serviços...${NC}"
+echo -e "${BLUE}[10/10] Verificando saúde dos serviços...${NC}"
 
 check_service_health() {
     local service_name=$1
@@ -401,7 +413,7 @@ fi
 echo ""
 
 # Verificar certificados SSL
-echo -e "${BLUE}[10/10] Verificando certificados SSL...${NC}"
+echo -e "${BLUE}[11/10] Verificando certificados SSL...${NC}"
 
 check_ssl_cert() {
     local domain=$1
