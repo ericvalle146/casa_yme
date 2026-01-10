@@ -225,6 +225,15 @@ EOF
 
 echo -e "${GREEN}✅ Arquivo backend/.env criado/atualizado${NC}"
 
+# DEBUG: Mostrar conteúdo do backend/.env
+echo ""
+echo "=================================================="
+echo "🔍 DEBUG - Conteúdo do backend/.env:"
+echo "=================================================="
+cat "$ENV_FILE" | grep -E "(DB_HOST|DB_PORT|DB_USER|DB_NAME|PORT|NODE_ENV|CORS_ORIGINS)"
+echo "=================================================="
+echo ""
+
 if [ -z "${N8N_WEBHOOK_URL:-}" ]; then
     echo -e "${YELLOW}⚠️  N8N_WEBHOOK_URL não está configurado${NC}"
 else
@@ -356,19 +365,70 @@ if [ "$SWARM_MODE" = true ]; then
     export ACCESS_TOKEN_TTL_MINUTES=${ACCESS_TOKEN_TTL_MINUTES:-15}
     export REFRESH_TOKEN_TTL_DAYS=${REFRESH_TOKEN_TTL_DAYS:-7}
     export PASSWORD_SALT_ROUNDS=${PASSWORD_SALT_ROUNDS:-12}
-    
+
+    # DEBUG: Mostrar TODAS as variáveis que serão passadas para o stack
+    echo ""
+    echo "=================================================="
+    echo "🔍 DEBUG - Variáveis exportadas ANTES do docker stack deploy:"
+    echo "=================================================="
+    echo "DB_HOST='${DB_HOST}'"
+    echo "DB_PORT='${DB_PORT}'"
+    echo "DB_USER='${DB_USER}'"
+    echo "DB_PASSWORD='${DB_PASSWORD}'"
+    echo "DB_NAME='${DB_NAME}'"
+    echo "DATABASE_URL='${DATABASE_URL}'"
+    echo "PORT='${PORT}'"
+    echo "NODE_ENV='${NODE_ENV}'"
+    echo "CORS_ORIGINS='${CORS_ORIGINS}'"
+    echo "ACCESS_TOKEN_SECRET='${ACCESS_TOKEN_SECRET:0:20}...'"
+    echo "VITE_API_BASE_URL='${VITE_API_BASE_URL}'"
+    echo "=================================================="
+    echo ""
+
     docker stack deploy -c "$PROJECT_ROOT/deploy/docker-stack.yml" casayme || {
         echo -e "${RED}❌ Erro ao fazer deploy da stack${NC}"
         exit 1
     }
     
     echo -e "${GREEN}✅ Stack deploy iniciado${NC}"
+    echo -e "${BLUE}   Aguardando containers iniciarem...${NC}"
     sleep 10
-    
+
     # Verificar serviços
     echo -e "${BLUE}   Verificando serviços...${NC}"
     docker service ls | grep casayme || true
-    
+
+    # DEBUG: Verificar variáveis de ambiente DENTRO do container
+    echo ""
+    echo "=================================================="
+    echo "🔍 DEBUG - Variáveis de ambiente DENTRO do backend:"
+    echo "=================================================="
+
+    # Pegar o ID do container do backend
+    BACKEND_CONTAINER=$(docker ps --filter "name=casayme_backend" --format "{{.ID}}" | head -n 1)
+
+    if [ -n "$BACKEND_CONTAINER" ]; then
+        echo "Container backend encontrado: $BACKEND_CONTAINER"
+        echo ""
+        echo "Variáveis de ambiente do backend:"
+        docker exec "$BACKEND_CONTAINER" env | grep -E "(DB_HOST|DB_PORT|DB_USER|DB_NAME|PORT|NODE_ENV|CORS_ORIGINS)" || echo "Nenhuma variável encontrada!"
+    else
+        echo "⚠️  Container backend ainda não está rodando"
+        echo "Esperando mais 10 segundos..."
+        sleep 10
+        BACKEND_CONTAINER=$(docker ps --filter "name=casayme_backend" --format "{{.ID}}" | head -n 1)
+        if [ -n "$BACKEND_CONTAINER" ]; then
+            echo "Container backend encontrado: $BACKEND_CONTAINER"
+            echo ""
+            echo "Variáveis de ambiente do backend:"
+            docker exec "$BACKEND_CONTAINER" env | grep -E "(DB_HOST|DB_PORT|DB_USER|DB_NAME|PORT|NODE_ENV|CORS_ORIGINS)" || echo "Nenhuma variável encontrada!"
+        else
+            echo "❌ Container backend não iniciou ainda. Verifique com: docker service logs casayme_backend"
+        fi
+    fi
+    echo "=================================================="
+    echo ""
+
 else
     # Deploy com Compose
     echo -e "${BLUE}   Deployando com Docker Compose...${NC}"
