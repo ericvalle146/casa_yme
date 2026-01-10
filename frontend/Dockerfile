@@ -25,7 +25,18 @@ ARG VITE_WEBHOOK_URL
 ARG VITE_API_BASE_URL
 ENV VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+# DEBUG: Mostrar as variáveis que Vite vai usar
+RUN echo "🔍 DEBUG - Variáveis de ambiente durante o build:" && \
+    echo "VITE_API_BASE_URL=${VITE_API_BASE_URL}" && \
+    echo "VITE_WEBHOOK_URL=${VITE_WEBHOOK_URL}" && \
+    env | grep VITE || true
+
 RUN npm run build
+
+# DEBUG: Verificar se a variável foi embutida no build
+RUN echo "🔍 Verificando se backend.casayme.com.br está no build:" && \
+    grep -r "backend.casayme.com.br" dist/assets/*.js && echo "✅ Encontrado!" || echo "❌ NÃO encontrado!"
 
 # Estágio de produção com Nginx
 FROM nginx:alpine

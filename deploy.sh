@@ -290,7 +290,12 @@ fi
 
 if [ "$SWARM_MODE" = true ]; then
     echo -e "${BLUE}   Building frontend...${NC}"
+    echo -e "${YELLOW}   🔍 DEBUG - Variáveis que serão passadas pro Docker build:${NC}"
+    echo -e "${YELLOW}      VITE_API_BASE_URL='${VITE_API_BASE_URL}'${NC}"
+    echo -e "${YELLOW}      VITE_WEBHOOK_URL='${VITE_WEBHOOK_URL}'${NC}"
+
     docker build \
+        --no-cache \
         --pull \
         -t casayme-frontend:latest \
         -f "$PROJECT_ROOT/frontend/Dockerfile" \
@@ -300,6 +305,9 @@ if [ "$SWARM_MODE" = true ]; then
         echo -e "${RED}❌ Erro ao construir frontend${NC}"
         exit 1
     }
+
+    echo -e "${YELLOW}   🔍 Verificando se a variável foi embutida no build...${NC}"
+    docker run --rm casayme-frontend:latest sh -c "grep -r 'backend.casayme.com.br' /usr/share/nginx/html/assets/*.js" || echo -e "${RED}   ❌ URL do backend NÃO foi encontrada no JavaScript buildado!${NC}"
 
     echo -e "${BLUE}   Building backend...${NC}"
     docker build \
