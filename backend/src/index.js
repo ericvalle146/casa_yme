@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { env, validateEnv } from "./config/env.js";
 import { logger } from "./config/logger.js";
+import { startAlertProcessor } from "./jobs/alertProcessor.js";
 
 try {
   validateEnv();
@@ -13,4 +14,7 @@ const app = createApp();
 
 app.listen(env.port, () => {
   logger.info(`Servidor ouvindo na porta ${env.port}`);
+
+  // Iniciar o processador de alertas
+  startAlertProcessor();
 });

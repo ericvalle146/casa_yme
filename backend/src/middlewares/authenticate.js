@@ -20,6 +20,7 @@ export const authenticate = (req, _res, next) => {
     req.user = {
       id: payload.sub,
       email: payload.email,
+      userType: payload.userType || 'VISITANTE', // Padrão: VISITANTE
     };
     return next();
   } catch (error) {

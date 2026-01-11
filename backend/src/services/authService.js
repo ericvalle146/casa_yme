@@ -11,6 +11,7 @@ const toUserResponse = (user) => ({
   id: user.id,
   name: user.name,
   email: user.email,
+  userType: user.user_type || 'VISITANTE',
   createdAt: user.created_at,
   lastLoginAt: user.last_login_at,
 });
@@ -34,7 +35,11 @@ const createSessionTokens = async ({ user, ipAddress, userAgent }) => {
     userAgent,
   });
 
-  const accessToken = signAccessToken({ sub: user.id, email: user.email });
+  const accessToken = signAccessToken({
+    sub: user.id,
+    email: user.email,
+    userType: user.user_type || 'VISITANTE',
+  });
 
   return {
     accessToken,
@@ -127,7 +132,11 @@ export const authService = {
       userAgent,
     });
 
-    const accessToken = signAccessToken({ sub: user.id, email: user.email });
+    const accessToken = signAccessToken({
+      sub: user.id,
+      email: user.email,
+      userType: user.user_type || 'VISITANTE',
+    });
 
     return {
       user: toUserResponse(user),

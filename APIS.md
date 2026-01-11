@@ -208,11 +208,16 @@ Authorization: Bearer <accessToken>
 Content-Type: multipart/form-data
 
 Campos:
-- title, type, transaction, price, bedrooms, bathrooms, area, neighborhood, city, state, description
+- title, type, transaction, price, bedrooms, bathrooms, suites, area, vagas, neighborhood, city, state, description
+- iptu, condominio (valores numericos)
+- street, number, complement, zip_code (endereco completo para geocoding automatico)
+- is_active (boolean, default: true)
 - amenities (JSON array ou lista separada por virgula)
 - mediaUrls (JSON array de objetos: { url, alt, isCover })
 - mediaFiles (arquivos)
 - mediaFilesMeta (JSON array de objetos: { alt, isCover })
+
+Obs: latitude, longitude e full_address sao gerados automaticamente pelo backend via geocoding do OpenStreetMap
 
 Resposta 201: objeto do imovel com galeria.
 

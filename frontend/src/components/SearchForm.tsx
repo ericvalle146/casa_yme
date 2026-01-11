@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import {
   Select,
@@ -8,12 +8,10 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Input } from "./ui/input";
-import { cn } from "@/lib/utils";
+import LocationAutocomplete from "./LocationAutocomplete";
 import type { TransactionType } from "@/data/properties";
 
 interface SearchFormProps {
-  cities: { label: string; city: string; state: string }[];
-  neighborhoodsByCity: Map<string, string[]>;
   propertyTypes: string[];
   bedroomOptions: string[];
   onSearch: (filters: {
@@ -25,6 +23,8 @@ interface SearchFormProps {
     bedrooms?: number;
     minValue?: number;
     maxValue?: number;
+    minArea?: number;
+    minVagas?: number;
   }) => void;
 }
 
@@ -65,26 +65,18 @@ const formatInputCurrency = (value: string) => {
 };
 
 const SearchForm = ({
-  cities,
-  neighborhoodsByCity,
   propertyTypes,
   bedroomOptions,
   onSearch,
 }: SearchFormProps) => {
   const [objective, setObjective] = useState<string>("");
-  const [cityKey, setCityKey] = useState<string>("");
-  const [neighborhood, setNeighborhood] = useState<string>("");
+  const [location, setLocation] = useState<{ city: string; state: string; neighborhood: string } | null>(null);
   const [propertyType, setPropertyType] = useState<string>("");
   const [bedrooms, setBedrooms] = useState<string>("");
   const [minInvestment, setMinInvestment] = useState<string>("");
   const [maxInvestment, setMaxInvestment] = useState<string>("");
-
-  const neighborhoodsOptions = useMemo(() => {
-    if (!cityKey) {
-      return [];
-    }
-    return neighborhoodsByCity.get(cityKey) ?? [];
-  }, [cityKey, neighborhoodsByCity]);
+  const [minArea, setMinArea] = useState<string>("");
+  const [minVagas, setMinVagas] = useState<string>("");
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -98,20 +90,18 @@ const SearchForm = ({
       bedrooms?: number;
       minValue?: number;
       maxValue?: number;
+      minArea?: number;
+      minVagas?: number;
     } = {};
 
     if (objective) {
       filters.transaction = objectiveToTransaction[objective];
     }
 
-    if (cityKey) {
-      const [city, state] = cityKey.split("__");
-      filters.city = city;
-      filters.state = state;
-    }
-
-    if (neighborhood) {
-      filters.neighborhood = neighborhood;
+    if (location) {
+      if (location.city) filters.city = location.city;
+      if (location.state) filters.state = location.state;
+      if (location.neighborhood) filters.neighborhood = location.neighborhood;
     }
 
     if (propertyType) {
@@ -135,12 +125,21 @@ const SearchForm = ({
       filters.maxValue = maxValue;
     }
 
-    onSearch(filters);
-  };
+    if (minArea) {
+      const parsedMinArea = Number.parseInt(minArea, 10);
+      if (!Number.isNaN(parsedMinArea)) {
+        filters.minArea = parsedMinArea;
+      }
+    }
 
-  const handleCityChange = (value: string) => {
-    setCityKey(value);
-    setNeighborhood("");
+    if (minVagas) {
+      const parsedMinVagas = Number.parseInt(minVagas, 10);
+      if (!Number.isNaN(parsedMinVagas)) {
+        filters.minVagas = parsedMinVagas;
+      }
+    }
+
+    onSearch(filters);
   };
 
   const handleMinChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,35 +181,12 @@ const SearchForm = ({
           </SelectContent>
         </Select>
 
-        <Select value={cityKey} onValueChange={handleCityChange}>
-          <SelectTrigger className="w-full bg-background h-12">
-            <SelectValue placeholder="Cidade" />
-          </SelectTrigger>
-          <SelectContent className="bg-popover">
-            {cities.map(({ label, city, state }) => (
-              <SelectItem key={`${city}__${state}`} value={`${city}__${state}`}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={neighborhood}
-          onValueChange={setNeighborhood}
-          disabled={!neighborhoodsOptions.length}
-        >
-          <SelectTrigger className={cn("w-full bg-background h-12", { "text-muted-foreground": !cityKey })}>
-            <SelectValue placeholder="Bairro" />
-          </SelectTrigger>
-          <SelectContent className="bg-popover">
-            {neighborhoodsOptions.map((item) => (
-              <SelectItem key={item} value={item}>
-                {item}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <LocationAutocomplete
+          value={location}
+          onChange={setLocation}
+          placeholder="Cidade ou bairro"
+          className="h-12"
+        />
 
         <Select value={propertyType} onValueChange={setPropertyType}>
           <SelectTrigger className="w-full bg-background h-12">
@@ -254,6 +230,22 @@ const SearchForm = ({
             inputMode="numeric"
           />
         </div>
+
+        <Input
+          className="h-12 bg-background"
+          placeholder="Área mínima (m²)"
+          value={minArea}
+          onChange={(e) => setMinArea(e.target.value.replace(/\D/g, ""))}
+          inputMode="numeric"
+        />
+
+        <Input
+          className="h-12 bg-background"
+          placeholder="Vagas mínimas"
+          value={minVagas}
+          onChange={(e) => setMinVagas(e.target.value.replace(/\D/g, ""))}
+          inputMode="numeric"
+        />
 
         <Button
           type="submit"

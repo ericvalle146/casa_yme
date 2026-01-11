@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContactForm from "@/components/ContactForm";
+import PropertyMap from "@/components/PropertyMap";
+import NearbyProperties from "@/components/NearbyProperties";
 import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
@@ -16,6 +18,7 @@ import { Bed, Bath, Square, MapPin, ArrowLeft, Phone, Mail, Car, Dumbbell, Waves
 import { Property, formatCurrency } from "@/data/properties";
 import { API_BASE_URL } from "@/lib/api";
 import { resolveMediaUrl } from "@/lib/media";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 const PropertyDetails = () => {
   const { id } = useParams();
@@ -118,6 +121,7 @@ const PropertyDetails = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <div className="lg:col-span-2">
               <div className="relative rounded-3xl mb-8 shadow-2xl bg-card">
+                <FavoriteButton propertyId={property.id} className="absolute top-6 right-6 z-20" />
                 <Carousel className="rounded-3xl">
                   <CarouselContent>
                     {gallery.map((media, index) => (
@@ -173,7 +177,7 @@ const PropertyDetails = () => {
                 </p>
               </div>
 
-              <div className="bg-card rounded-3xl p-8 border border-border/60 shadow-lg">
+              <div className="bg-card rounded-3xl p-8 border border-border/60 shadow-lg mb-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
                   Comodidades
                 </h2>
@@ -202,6 +206,18 @@ const PropertyDetails = () => {
                     );
                   })}
                 </div>
+              </div>
+
+              <div className="bg-card rounded-3xl p-8 border border-border/60 shadow-lg mb-8">
+                <h2 className="text-2xl font-semibold text-foreground mb-6">
+                  Localização
+                </h2>
+                <PropertyMap
+                  latitude={property.latitude}
+                  longitude={property.longitude}
+                  title={property.title}
+                  address={property.fullAddress || `${property.neighborhood}, ${property.city} - ${property.state}`}
+                />
               </div>
             </div>
 
@@ -245,12 +261,38 @@ const PropertyDetails = () => {
                       <span>Banheiros</span>
                       <span className="text-foreground font-medium">{property.bathrooms}</span>
                     </div>
+                    {property.vagas > 0 && (
+                      <div className="flex justify-between">
+                        <span>Vagas de Garagem</span>
+                        <span className="text-foreground font-medium">{property.vagas}</span>
+                      </div>
+                    )}
+                    {property.iptu > 0 && (
+                      <div className="flex justify-between">
+                        <span>IPTU</span>
+                        <span className="text-foreground font-medium">{formatCurrency(property.iptu)}</span>
+                      </div>
+                    )}
+                    {property.condominio > 0 && (
+                      <div className="flex justify-between">
+                        <span>Condomínio</span>
+                        <span className="text-foreground font-medium">{formatCurrency(property.condominio)}/mês</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               <ContactForm defaultMessage={`Tenho interesse na propriedade "${property.title}".`} />
             </div>
+          </div>
+
+          {/* Seção de Imóveis Próximos */}
+          <div className="mt-16">
+            <h2 className="text-3xl font-semibold text-foreground mb-8">
+              Imóveis próximos
+            </h2>
+            <NearbyProperties propertyId={property.id} limit={6} />
           </div>
         </div>
       </main>

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import logo from "../assets/logo-principal.png";
 import { Button } from "./ui/button";
 import AuthDialog from "./AuthDialog";
+import UserProfileMenu from "./UserProfileMenu";
 import { useAuth } from "@/context/AuthContext";
 
 const Header = () => {
@@ -49,18 +50,9 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="hidden md:flex" aria-label="Buscar imóveis">
-              <Search className="h-5 w-5" />
-            </Button>
             {user ? (
               <div className="hidden md:flex items-center gap-3">
-                <Button asChild variant="outline">
-                  <Link to="/admin">Adicionar imoveis</Link>
-                </Button>
-                <span className="text-sm text-muted-foreground">Ola, {user.name}</span>
-                <Button variant="outline" onClick={logout}>
-                  Sair
-                </Button>
+                <UserProfileMenu />
               </div>
             ) : (
               <Button
@@ -71,7 +63,15 @@ const Header = () => {
                 Entrar
               </Button>
             )}
-            <Button className="hidden md:inline-flex bg-primary hover:bg-primary/90 text-white">
+            <Button
+              className="hidden md:inline-flex bg-primary hover:bg-primary/90 text-white"
+              onClick={() => {
+                const contatoSection = document.getElementById('contato');
+                if (contatoSection) {
+                  contatoSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
               Agendar Consultoria
             </Button>
             <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMenu} aria-label="Abrir menu">
@@ -96,7 +96,16 @@ const Header = () => {
                 </li>
               ))}
               <li>
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white">
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90 text-white"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    const contatoSection = document.getElementById('contato');
+                    if (contatoSection) {
+                      contatoSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   Agendar Consultoria
                 </Button>
               </li>

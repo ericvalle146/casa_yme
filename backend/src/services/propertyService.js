@@ -1,6 +1,7 @@
 import { propertyRepository } from "../repositories/propertyRepository.js";
 import { HttpError } from "../utils/errors.js";
 import { removeUploadFile } from "../utils/files.js";
+import { geocodingService } from "./geocodingService.js";
 
 const normalizeAmenities = (amenities) =>
   Array.isArray(amenities)
@@ -31,6 +32,22 @@ const toPropertyResponse = (property, media = []) => {
       position: item.position,
       isCover: item.is_cover,
     })),
+    // Novos campos adicionados
+    iptu: property.iptu ? Number(property.iptu) : 0,
+    condominio: property.condominio ? Number(property.condominio) : 0,
+    vagas: property.vagas || 0,
+    latitude: property.latitude ? Number(property.latitude) : null,
+    longitude: property.longitude ? Number(property.longitude) : null,
+    fullAddress: property.full_address || null,
+    street: property.street || null,
+    number: property.number || null,
+    complement: property.complement || null,
+    zipCode: property.zip_code || null,
+    areaTotal: property.area_total || 0,
+    suites: property.suites || 0,
+    isActive: property.is_active !== false,
+    viewsCount: property.views_count || 0,
+    contactsCount: property.contacts_count || 0,
     createdBy: property.created_by,
     createdAt: property.created_at,
     updatedAt: property.updated_at,
@@ -120,6 +137,16 @@ export const propertyService = {
       description: row.description,
       amenities: row.amenities || [],
       image: row.cover_url || null,
+      // Novos campos
+      iptu: row.iptu ? Number(row.iptu) : 0,
+      condominio: row.condominio ? Number(row.condominio) : 0,
+      vagas: row.vagas || 0,
+      latitude: row.latitude ? Number(row.latitude) : null,
+      longitude: row.longitude ? Number(row.longitude) : null,
+      fullAddress: row.full_address || null,
+      isActive: row.is_active !== false,
+      viewsCount: row.views_count || 0,
+      contactsCount: row.contacts_count || 0,
       createdBy: row.created_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -139,9 +166,37 @@ export const propertyService = {
   create: async ({ payload, mediaUrls, mediaFiles, mediaFilesMeta, createdBy }) => {
     validatePropertyPayload(payload);
 
+    // Geocoding: converter endereço em coordenadas GPS
+    let latitude = null;
+    let longitude = null;
+    let fullAddress = null;
+
+    if (payload.street || payload.city) {
+      const addressComponents = {
+        street: payload.street,
+        number: payload.number,
+        neighborhood: payload.neighborhood,
+        city: payload.city,
+        state: payload.state,
+        zipCode: payload.zipCode
+      };
+
+      fullAddress = geocodingService.buildFullAddress(addressComponents);
+
+      const geocodeResult = await geocodingService.geocodeAddress(fullAddress);
+      latitude = geocodeResult.latitude;
+      longitude = geocodeResult.longitude;
+      if (geocodeResult.formattedAddress) {
+        fullAddress = geocodeResult.formattedAddress;
+      }
+    }
+
     const property = await propertyRepository.create({
       ...payload,
       amenities: normalizeAmenities(payload.amenities),
+      latitude,
+      longitude,
+      fullAddress,
       createdBy,
     });
 
@@ -176,14 +231,53 @@ export const propertyService = {
       state: payload.state ?? existing.state,
       description: payload.description ?? existing.description,
       amenities: payload.amenities ?? existing.amenities,
+      iptu: payload.iptu ?? existing.iptu,
+      condominio: payload.condominio ?? existing.condominio,
+      vagas: payload.vagas ?? existing.vagas,
+      street: payload.street ?? existing.street,
+      number: payload.number ?? existing.number,
+      complement: payload.complement ?? existing.complement,
+      zipCode: payload.zipCode ?? existing.zip_code,
+      areaTotal: payload.areaTotal ?? existing.area_total,
+      suites: payload.suites ?? existing.suites,
+      isActive: payload.isActive ?? existing.is_active,
     };
 
     validatePropertyPayload(mergedPayload);
 
-    const property = await propertyRepository.update(id, {
+    // Re-fazer geocoding se os campos de endereço mudaram
+    const addressChanged =
+      payload.street !== undefined ||
+      payload.number !== undefined ||
+      payload.neighborhood !== undefined ||
+      payload.city !== undefined ||
+      payload.state !== undefined ||
+      payload.zipCode !== undefined;
+
+    let updateData = {
       ...mergedPayload,
       amenities: normalizeAmenities(mergedPayload.amenities),
-    });
+    };
+
+    if (addressChanged) {
+      const addressComponents = {
+        street: mergedPayload.street,
+        number: mergedPayload.number,
+        neighborhood: mergedPayload.neighborhood,
+        city: mergedPayload.city,
+        state: mergedPayload.state,
+        zipCode: mergedPayload.zipCode
+      };
+
+      const fullAddress = geocodingService.buildFullAddress(addressComponents);
+      const geocodeResult = await geocodingService.geocodeAddress(fullAddress);
+
+      updateData.latitude = geocodeResult.latitude;
+      updateData.longitude = geocodeResult.longitude;
+      updateData.fullAddress = geocodeResult.formattedAddress || fullAddress;
+    }
+
+    const property = await propertyRepository.update(id, updateData);
 
     let media = await propertyRepository.listMediaByProperty(id);
 
@@ -210,5 +304,70 @@ export const propertyService = {
         removeUploadFile(item.storage_key);
       }
     });
+  },
+
+  /**
+   * Busca avançada de imóveis com filtros
+   */
+  search: async (filters) => {
+    const rows = await propertyRepository.search(filters);
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      type: row.type,
+      transaction: row.transaction,
+      price: Number(row.price),
+      bedrooms: Number(row.bedrooms),
+      bathrooms: Number(row.bathrooms),
+      area: Number(row.area),
+      neighborhood: row.neighborhood,
+      city: row.city,
+      state: row.state,
+      description: row.description,
+      amenities: row.amenities || [],
+      image: row.cover_url || null,
+      iptu: row.iptu ? Number(row.iptu) : 0,
+      condominio: row.condominio ? Number(row.condominio) : 0,
+      vagas: row.vagas || 0,
+      latitude: row.latitude ? Number(row.latitude) : null,
+      longitude: row.longitude ? Number(row.longitude) : null,
+      fullAddress: row.full_address || null,
+      createdAt: row.created_at,
+      distance: row.distance ? Number(row.distance) : null, // Distância em km (se busca por proximidade)
+    }));
+  },
+
+  /**
+   * Autocomplete de localizações
+   */
+  autocompleteLocations: async (searchTerm) => {
+    return await propertyRepository.autocompleteLocations(searchTerm);
+  },
+
+  /**
+   * Encontra imóveis próximos
+   */
+  findNearby: async (propertyId, limit = 6) => {
+    const rows = await propertyRepository.findNearby(propertyId, limit);
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      type: row.type,
+      transaction: row.transaction,
+      price: Number(row.price),
+      bedrooms: Number(row.bedrooms),
+      bathrooms: Number(row.bathrooms),
+      area: Number(row.area),
+      neighborhood: row.neighborhood,
+      city: row.city,
+      state: row.state,
+      image: row.cover_url || null,
+      iptu: row.iptu ? Number(row.iptu) : 0,
+      condominio: row.condominio ? Number(row.condominio) : 0,
+      vagas: row.vagas || 0,
+      latitude: row.latitude ? Number(row.latitude) : null,
+      longitude: row.longitude ? Number(row.longitude) : null,
+      distance: row.distance ? Number(row.distance).toFixed(2) : null, // Distância em km com 2 casas decimais
+    }));
   },
 };

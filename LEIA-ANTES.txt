@@ -4,5 +4,6 @@ Antes de realizar qualquer coisa, leia todos esses .mds:
 - sql/ESTRUTURA-BANCO.md
 
 Atualize esses documentos sempre que fizer qualquer alteracao no sistema.
+Sempre faça um plano de execução e depois venha executando ele.
 Pense e repense sobre as alteracoes e confirme se estao corretas.
 Sempre aja com clear architecture.

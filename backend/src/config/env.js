@@ -17,6 +17,8 @@ export const env = {
   port: toNumber(process.env.PORT, 4000),
   corsOrigins: listFromEnv(process.env.CORS_ORIGINS, ["http://localhost:5173"]),
   n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || "",
+  n8nAlertWebhookUrl: process.env.N8N_ALERT_WEBHOOK_URL || "",
+  frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
   databaseUrl: process.env.DATABASE_URL || "",
   db: {
     host: process.env.DB_HOST || "",

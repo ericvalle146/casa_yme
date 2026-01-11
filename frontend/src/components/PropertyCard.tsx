@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import type { Property } from "@/data/properties";
 import { formatCurrency } from "@/data/properties";
 import { resolveMediaUrl } from "@/lib/media";
+import { FavoriteButton } from "./FavoriteButton";
 
 const PropertyCard = ({
   id,
@@ -31,6 +32,7 @@ const PropertyCard = ({
   return (
     <Card className="group flex h-full flex-col overflow-hidden border border-border/70 bg-card/95 transition-shadow duration-300 hover:shadow-lg">
       <div className="relative overflow-hidden h-52 bg-muted/30">
+        <FavoriteButton propertyId={id} />
         <img
           src={imageSrc}
           alt={title}

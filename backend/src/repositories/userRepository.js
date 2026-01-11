@@ -3,7 +3,7 @@ import { query } from "../db/pool.js";
 export const userRepository = {
   findByEmail: async (email) => {
     const result = await query(
-      "SELECT id, name, email, password_hash, created_at, updated_at, last_login_at FROM users WHERE email = $1",
+      "SELECT id, name, email, password_hash, user_type, phone, creci, company_name, company_logo_url, bio, profile_photo_url, created_at, updated_at, last_login_at FROM users WHERE email = $1",
       [email],
     );
     return result.rows[0] || null;
@@ -11,7 +11,7 @@ export const userRepository = {
 
   findById: async (id) => {
     const result = await query(
-      "SELECT id, name, email, created_at, updated_at, last_login_at FROM users WHERE id = $1",
+      "SELECT id, name, email, user_type, phone, creci, company_name, company_logo_url, bio, profile_photo_url, created_at, updated_at, last_login_at FROM users WHERE id = $1",
       [id],
     );
     return result.rows[0] || null;
@@ -21,7 +21,7 @@ export const userRepository = {
     const result = await query(
       `INSERT INTO users (name, email, password_hash)
        VALUES ($1, $2, $3)
-       RETURNING id, name, email, created_at, updated_at, last_login_at`,
+       RETURNING id, name, email, user_type, phone, creci, company_name, created_at, updated_at, last_login_at`,
       [name, email, passwordHash],
     );
     return result.rows[0];

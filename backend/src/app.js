@@ -7,6 +7,8 @@ import authRoutes from "./routes/authRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
+import favoriteRoutes from "./routes/favoriteRoutes.js";
+import alertRoutes from "./routes/alertRoutes.js";
 
 export const createApp = () => {
   const app = express();
@@ -23,6 +25,8 @@ export const createApp = () => {
   app.use("/api/contact", contactRoutes);
   app.use("/api/auth", authRoutes);
   app.use("/api/properties", propertyRoutes);
+  app.use("/api/favorites", favoriteRoutes);
+  app.use("/api/alerts", alertRoutes);
 
   app.use(errorHandler);
 

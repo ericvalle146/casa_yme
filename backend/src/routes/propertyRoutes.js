@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { propertyController } from "../controllers/propertyController.js";
 import { asyncHandler } from "../middlewares/asyncHandler.js";
 import { authenticate } from "../middlewares/authenticate.js";
+import { requireRole } from "../middlewares/roleGuard.js";
 import { uploadDir } from "../config/paths.js";
 import { ensureUploadDir } from "../utils/files.js";
 
@@ -36,9 +37,32 @@ const upload = multer({
 const router = Router();
 
 router.get("/", asyncHandler(propertyController.list));
+// Rotas específicas devem vir ANTES de rotas parametrizadas (/:id)
+router.get("/search", asyncHandler(propertyController.search));
+router.get("/autocomplete/locations", asyncHandler(propertyController.autocompleteLocations));
+router.get("/:id/nearby", asyncHandler(propertyController.findNearby));
 router.get("/:id", asyncHandler(propertyController.getById));
-router.post("/", authenticate, upload.array("mediaFiles", 12), asyncHandler(propertyController.create));
-router.put("/:id", authenticate, upload.array("mediaFiles", 12), asyncHandler(propertyController.update));
-router.delete("/:id", authenticate, asyncHandler(propertyController.remove));
+
+// Rotas protegidas: Apenas CORRETOR e ADMIN podem criar/editar/deletar imóveis
+router.post(
+  "/",
+  authenticate,
+  requireRole('CORRETOR', 'ADMIN'),
+  upload.array("mediaFiles", 12),
+  asyncHandler(propertyController.create)
+);
+router.put(
+  "/:id",
+  authenticate,
+  requireRole('CORRETOR', 'ADMIN'),
+  upload.array("mediaFiles", 12),
+  asyncHandler(propertyController.update)
+);
+router.delete(
+  "/:id",
+  authenticate,
+  requireRole('CORRETOR', 'ADMIN'),
+  asyncHandler(propertyController.remove)
+);
 
 export default router;
